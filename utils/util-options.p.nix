@@ -21,7 +21,6 @@ with builtins; let
         config.pkgs.nixpkgsConfig.allowUnfree = true;
         # config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [ "terraform" ];
 
-
         # inject into perSystem pkgs
         config._module.args.pkgs = import self.inputs.nixpkgs {
           inherit system;
@@ -53,7 +52,7 @@ with builtins; let
   # };
 
   # This exposes ownPkgs in flake outputs AND as a perSystem module argument (collected from pkgs/ )
-  flakeModules.ownPkgs = { config, l, ... }: {
+  flakeModules.ownPkgs = part@{ config, l, ... }: {
     options.pkgDefs = l.mkOption { type = l.types.unspecified; default = { }; };
     # TODO: use findNixFilesRec
     imports = [
@@ -65,7 +64,6 @@ with builtins; let
     ];
 
     config.perSystem = { pkgs, l, lib, inputs', system, ... }: with builtins; let
-
       # # TODO figure out env-based overrides
       # mkExtraInput = overridePath: defaultSrc:
       #   if overridePath != "" && pathExists overridePath
@@ -73,10 +71,10 @@ with builtins; let
       #   else getFlake defaultSrc;
 
       # extraInputs =
-      #   let tools = mkExtraInput (getEnv "OVERRIDE_INPUT_TOOLS") "https://gitlab.com/nmrshll/tools.git";
+      #   let tools = mkExtraInput (getEnv "NIX_OVERRIDE_INPUT_TOOLS") "https://gitlab.com/nmrshll/tools.git";
       #   in {
       #     # TODO use PAT in URL/env for private repos
-      #     tools = getFlake ("/Users/me/src/me/tools");
+      #     tools = getFlake ("path:/Users/me/src/me/tools");
       #   };
 
       # collect packages indexed by name & version
@@ -105,16 +103,17 @@ with builtins; let
       mkOwnPkgs = { pkgs, lib, ... }: l.filterAttrs (n: v: v != null) (
         (l.mapAttrs (name: mkPkg: pkgs.callPackage mkPkg { }) ownPkgDefs)
       );
+      thisFlakeInputs = part.config.flakeInputsOf.my-nix;
 
     in
     {
       pkgs.overlays = [
         # (final: prev: { own = (prev.own or { }) // { tools = (l.dbg3 inputs.tools.packages).${system} or { }; }; })
-        (final: prev: { own.tools = inputs'.tools.packages; })
+        (final: prev: { own.tools = thisFlakeInputs.tools.packages.${system}; })
         (final: prev: { own = (prev.own or { }) // { my-nix = mkOwnPkgs { pkgs = final; lib = prev.lib; }; }; })
       ];
       expose.packages.own = {
-        tools = inputs'.tools.packages or { };
+        tools = thisFlakeInputs.tools.packages.${system};
         my-nix = mkOwnPkgs { pkgs = pkgs; lib = l; };
       };
     };
