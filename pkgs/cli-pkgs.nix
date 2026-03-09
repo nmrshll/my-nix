@@ -26,20 +26,24 @@ with builtins; {
 
   pkgDefs.leveldb-viewer = rec {
     versions = {
-      "master".sha256 = "sha256-0000000000000000000000000000000000000000000=";
+      aarch64-darwin."master".sha256 = "DLP4gVoC9Nb/0iIjkNG1mwCIAfxH1KPbrDm/ueE3fFk=";
     };
-    mkPkg = { pkgs, version ? "master", ... }:
+    mkPkg = { pkgs, version ? "master", system ? pkgs.stdenv.hostPlatform.system, ... }:
       pkgs.buildGoModule {
         pname = "leveldb-viewer";
         inherit version;
+
+        vendorHash = "sha256-2I5oxQo9bINJ+BjGO4FHOkRx1W2O315rx6MUGRZh3xo=";
 
         src = pkgs.fetchFromGitHub {
           owner = "arkantos1482";
           repo = "leveldb-viewer";
           rev = version;
-          sha256 = versions.${version}.sha256;
+          sha256 = versions.${system}.${version}.sha256;
         };
       };
   };
+
+  # TODO package https://github.com/ErfanY/krust
 
 }
