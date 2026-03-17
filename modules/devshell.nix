@@ -1,6 +1,6 @@
 with builtins; let
 
-  flakeModules.devShell = { lib, pkgs, options, ... }: {
+  flakeModules.devShell = { lib, pkgs, options, l, ... }: {
     perSystem = { lib, pkgs, config, options, ... }: {
       options = {
         devShellParts = {

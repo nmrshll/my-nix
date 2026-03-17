@@ -5,7 +5,7 @@ with builtins; let
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs); });
 
-        customRust = pkgs.rust-bin.beta.latest.default.override {
+        customRust = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
           targets = [ ];
         };
@@ -14,8 +14,8 @@ with builtins; let
         buildInputs = config.rust.buildInputs ++ [
           customRust
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          pkgs.apple-sdk_15
-          pkgs.libiconv
+          # pkgs.apple-sdk_15
+          # pkgs.libiconv
         ];
         devInputs = with pkgs; [
           cargo-nextest
