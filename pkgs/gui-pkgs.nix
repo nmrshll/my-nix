@@ -77,6 +77,77 @@
       };
   };
 
+  pkgDefs.opencode-desktop = rec {
+    versions = {
+      aarch64-darwin."1.2.27".sha256 = "1j6hp4pqm2rdz3s8j08ihylkhdgnb5kanxlkyqpshkf1d6dr0bha";
+    };
+    mkPkg = { pkgs, version ? "1.2.27", system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        appname = "opencode";
+        url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-desktop-darwin-aarch64.app.tar.gz";
+        sharedDrvAttrs = {
+          inherit version;
+          pname = appname;
+          src = builtins.fetchurl {
+            inherit url;
+            sha256 = versions.${system}.${version}.sha256;
+          };
+          meta = {
+            description = "AI-powered code editor and terminal";
+            homepage = "https://opencode.ai";
+            platforms = [ "aarch64-darwin" ];
+          };
+        };
+      in
+      if pkgs.stdenv.isDarwin then
+        pkgs.stdenvNoCC.mkDerivation
+          (sharedDrvAttrs // {
+            # inherit version;
+            # pname = appname;
+            # src = builtins.fetchurl {
+            #   inherit url;
+            #   sha256 = versions.${system}.${version}.sha256;
+            # };
+            buildInputs = [ pkgs.bzip2 ];
+            unpackCmd = ''
+              echo "File to unpack: $curSrc"
+              tar -xf "$curSrc"
+            '';
+            installPhase = ''
+              mkdir -p "$out/Applications/${appname}.app"
+              cp -a ./. "$out/Applications/${appname}.app/"
+            '';
+            # meta = {
+            #   description = "AI-powered code editor and terminal";
+            #   homepage = "https://opencode.ai";
+            #   platforms = [ "aarch64-darwin" ];
+            # };
+          })
+      else throw "Unsupported system: ${pkgs.stdenv.hostPlatform.system}";
+  };
+
+
+  pkgDefs.augment-intent = rec {
+    versions = {
+      aarch64-darwin."latest".sha256 = "03wkfzgf2k3nfikjrjsax8zf4j546w45cbnig66jhwsjaxiijlbj";
+    };
+    mkPkg = { pkgs, version ? "latest", system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        arch = if pkgs.stdenv.hostPlatform.isAarch64 then "arm64" else "x86_64";
+        url = "https://cdn.augmentcode.com/stable/Intent-latest-${arch}.dmg";
+      in
+      pkgs.lib.darwin.installDmg {
+        inherit version url;
+        sha256 = versions.${system}.${version}.sha256;
+        appname = "Intent by Augment";
+        meta = {
+          description = "AI-powered code completion and refactoring";
+          homepage = "https://intent.ai";
+          platforms = [ "aarch64-darwin" ];
+        };
+      };
+  };
+
   # pkgDefs.ferdium =
   #   let
   #     version = "7.0.0";
