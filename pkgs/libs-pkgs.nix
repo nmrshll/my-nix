@@ -64,7 +64,7 @@ with builtins; rec {
   pkgDefs.install-xcode-global = {
     mkPkg = { pkgs, version ? "26_1_Apple_silicon", lib, ... }:
       let
-        install-xcode-pkg = install-xcode.mkPkg { inherit pkgs version lib; };
+        install-xcode-pkg = pkgDefs.install-xcode.mkPkg { inherit pkgs version lib; };
         store_path = install-xcode-pkg.xcode_app.expected_path;
         target_path = "/Applications/Xcode.app";
         DEV_DIR = "${target_path}/Contents/Developer";
@@ -83,8 +83,10 @@ with builtins; rec {
         fi
 
         # 3. Set $DEVELOPER_DIR and init Xcode
-        sudo xcode-select -s "${DEV_DIR}"
-  
+        if [ "$(xcode-select -print-path)" != "/Applications/Xcode.app/Contents/Developer"]; then
+          sudo xcode-select -s "${DEV_DIR}"
+        fi
+
         if ! xcodebuild -checkFirstLaunchStatus > /dev/null 2>&1; then
           yes agree | sudo xcodebuild -license accept
           xcodebuild -runFirstLaunch
@@ -115,7 +117,7 @@ with builtins; rec {
   #         #   /usr/bin/xip --expand Xcode_${version}.xip
   #         #   ls -la
   #         #   exit 1
-  #         # '' else 
+  #         # '' else
   #         ''
   #           ${pkgs.xar}/bin/xar -xf ${xip}
   #           ${pkgs.pbzx}/bin/pbzx -n Content | ${pkgs.cpio}/bin/cpio -i --verbose --preserve-modification-time --make-directories
