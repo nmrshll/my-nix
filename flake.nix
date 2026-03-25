@@ -9,7 +9,7 @@
   nixConfig.allow-unsafe-native-code-during-evaluation = true;
   nixConfig.allow-import-from-derivation = true;
 
-  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ flake-parts-lib, lib, ... }: with builtins; let
+  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ lib, ... }: with builtins; let
     l = (import ./utils/lib.p.nix { lib = lib; }).extraLib;
 
     # # NOTE: importApply injects thisFlake into module args (to distinguish from caller flake)
@@ -34,32 +34,22 @@
     #   (import ./utils/util-options.p.nix)
     #   (import ./utils/lib.darwin.p.nix)
     # ];
+    extraFlakeModules.exposeInputs = { options.flakeInputsOf.my-nix = l.constOpt inputs; /* expose this flake's inputs to consumers */ };
 
 
   in
   {
     debug = true;
     systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
-    imports = parts ++ [{
-      options.flakeInputsOf.my-nix = l.constOpt inputs; # expose this flake's inputs to consumers
-    }];
+    imports = parts ++ [ extraFlakeModules.exposeInputs ];
 
-    perSystem = { pkgs, config, l, ... }: {
+    perSystem = { config, l, ... }: {
       packages = l.flatMapPkgs config.expose.packages;
     };
 
     flake.flakeModules = {
-      utils.exposeInputs = { ... }: {
-        options.flakeInputsOf.my-nix = l.constOpt inputs;
-      };
-    }; # expose to consumers
-    # flake.flakeModules.utils = {
-    #   options.flakeInputsOf.my-nix = l.constOpt inputs;
-    # };
-    # inherit flakeModules; # expose to flake-parts recursive evaluation
+      utils = extraFlakeModules;
+      essentials = extraFlakeModules;
+    };
   });
 }
-
-
-
-

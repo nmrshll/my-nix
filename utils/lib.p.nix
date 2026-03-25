@@ -115,9 +115,7 @@
 
 in
 {
-  # options._internal = lib.mkOption { type = lib.types.unspecified; default = { lib = mkLib { lib = lib; }; }; readOnly = true; };
   extraLib = mkLib { lib = lib; };
-  flake.flakeModules.utils = flakeModules;
+  flake.flakeModules = { utils = flakeModules; essentials = flakeModules; };
   imports = (attrValues flakeModules);
 }
-
