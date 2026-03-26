@@ -83,7 +83,7 @@ with builtins; rec {
         fi
 
         # 3. Set $DEVELOPER_DIR and init Xcode
-        if [ "$(xcode-select -print-path)" != "/Applications/Xcode.app/Contents/Developer"]; then
+        if [ "$(xcode-select -print-path)" != "/Applications/Xcode.app/Contents/Developer" ]; then
           sudo xcode-select -s "${DEV_DIR}"
         fi
 
