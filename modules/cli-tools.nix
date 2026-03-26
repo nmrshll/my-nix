@@ -1,9 +1,8 @@
 # thisFlake:
-{ self, config, pkgs, ... }: with builtins; let
+{ l, ... }: with builtins; let
   flakeModules.cli-tools = {
-    perSystem = { config, pkgs, lib, ... }:
+    perSystem = { pkgs, ... }:
       let
-        l = lib // builtins;
         bin = l.mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs) tmux; });
 
         # debug-bash = ''
@@ -94,6 +93,6 @@
 
 in
 {
-  flake.flakeModules = { utils = flakeModules; essentials = flakeModules; };
+  flake.flakeModules = flakeModules // { utils = flakeModules; essentials = flakeModules; };
   imports = (attrValues flakeModules);
 }
