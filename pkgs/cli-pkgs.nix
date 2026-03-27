@@ -1,4 +1,4 @@
-with builtins; {
+{ l, ... }: with builtins; {
 
   pkgDefs.atlassian-cli = rec {
     versions = {
@@ -115,7 +115,7 @@ with builtins; {
       doInstallCheck = true;
       nativeInstallCheckInputs = [
         pkgs.writableTmpDirAsHomeHook
-        pkgs.versionCheckHook
+        pkgs.pkgs.versionCheckHook
       ];
       versionCheckKeepEnvironment = [ "HOME" ];
       versionCheckProgram = "${placeholder "out"}/bin/pi";
@@ -136,5 +136,83 @@ with builtins; {
   };
 
   # TODO package https://github.com/ErfanY/krust
+
+  pkgDefs.beads-rust = rec {
+    versions = {
+      aarch64-darwin. "0.1.34" = {
+        sha256 = "sha256-h3YomeRFeekp6PZwDSqibaQudyiZB8ewNEACjfHk96A=";
+        cargoHash = "sha256-gVvHXT507yNNUWUbLjfk9i93U72hnMqxuS8y7TnZyw0=";
+        frankensqlite = { rev = "a49c137d5f61a0753926e82217e9e293e071bd6a"; hash = "sha256-eA9ZK+cNh8MCjKbLVJwSgtT/40spacTRaNdLW9GESUE="; };
+        asupersync = { rev = "662284ad4b6ff64fdf7f25b31293d2bbbbd465e4"; hash = "sha256-LjiS63gEtY2QH3j+2UGi1BYHpfxM9+GpCuGHFDEYsto="; };
+      };
+    };
+    mkPkg = { pkgs, version ? "0.1.34", system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        data = versions.${system}.${version};
+
+        # Upstream uses [patch.crates-io] with local path deps pointing at sibling
+        # checkouts of frankensqlite and asupersync.  Fetch them separately and place
+        # them where Cargo expects.
+        # https://github.com/Dicklesworthstone/beads_rust/issues/183
+        frankensqlite = pkgs.fetchFromGitHub {
+          owner = "Dicklesworthstone";
+          repo = "frankensqlite";
+          inherit (data.frankensqlite) rev hash;
+        };
+
+        # frankensqlite workspace depends on asupersync via path = "../asupersync"
+        asupersync = pkgs.fetchFromGitHub {
+          owner = "Dicklesworthstone";
+          repo = "asupersync";
+          inherit (data.asupersync) rev hash;
+        };
+      in
+      pkgs.rustPlatform.buildRustPackage {
+        pname = "beads-rust";
+        inherit (data) cargoHash;
+        inherit version;
+
+        src = pkgs.fetchFromGitHub {
+          owner = "Dicklesworthstone";
+          repo = "beads_rust";
+          tag = "v${version}";
+          inherit (data) sha256;
+        };
+
+        postUnpack = ''
+          cp -r ${frankensqlite} frankensqlite
+          chmod -R u+w frankensqlite
+          cp -r ${asupersync} asupersync
+          chmod -R u+w asupersync
+        '';
+
+        # fsqlite uses #![feature(peer_credentials_unix_socket)] which requires nightly.
+        # RUSTC_BOOTSTRAP=1 enables nightly features on stable rustc.
+        env.RUSTC_BOOTSTRAP = 1;
+
+        # Disable self_update feature — doesn't make sense in Nix
+        buildNoDefaultFeatures = true;
+
+        # Tests require a git repository context
+        doCheck = false;
+
+        doInstallCheck = true;
+        nativeInstallCheckInputs = [ pkgs.versionCheckHook ];
+
+        passthru.category = "Workflow & Project Management";
+
+        meta = with l; {
+          description = "Fast Rust port of beads - a local-first issue tracker for git repositories";
+          homepage = "https://github.com/Dicklesworthstone/beads_rust";
+          changelog = "https://github.com/Dicklesworthstone/beads_rust/releases/tag/v${data.version}";
+          downloadPage = "https://github.com/Dicklesworthstone/beads_rust/releases";
+          license = licenses.mit;
+          sourceProvenance = with sourceTypes; [ fromSource ];
+          maintainers = with flake.lib.maintainers; [ afterthought ];
+          mainProgram = "br";
+          platforms = platforms.unix;
+        };
+      };
+  };
 
 }
