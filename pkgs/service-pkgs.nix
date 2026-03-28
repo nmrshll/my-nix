@@ -1,3 +1,14 @@
+let
+  # latest = system_versions: builtins.foldl (a: b: if a > b then a else b) "0" (builtins.attrNames system_versions);
+  # Pure builtins, no lib dependency
+  latest = system_versions:
+    let
+      versions = builtins.attrNames system_versions;
+      maxVersion = a: b: if builtins.compareVersions a b > 0 then a else b;
+    in
+    if versions == [ ] then "0"
+    else builtins.foldl' maxVersion (builtins.head versions) (builtins.tail versions);
+in
 {
 
   pkgDefs.handy = rec {
@@ -171,5 +182,65 @@
         };
       };
   };
+
+  # TODO use python314Packages.mlx-lm
+  # pkgDefs.mlx-lm = rec {
+  #   versions = { };
+  #   mkPkg = { pkgs, version ? (latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+  #     let in pkgs.python3.pkgs.buildPythonApplication rec {
+  #       pname = "mlx-lm";
+  #       version = "0.31.1";
+  #       pyproject = true;
+
+  #       src = pkgs.fetchPypi {
+  #         inherit pname version;
+  #         sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+  #       };
+
+  #       nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools wheel ];
+  #       propagatedBuildInputs = with pkgs.python3.pkgs; [
+  #         mlx
+  #         numpy
+  #         transformers
+  #         protobuf
+  #         pyyaml
+  #         jinja2
+  #         sentencepiece
+  #         pillow
+  #         requests
+  #         tqdm
+  #       ];
+
+  #       pythonImportsCheck = [ "mlx_lm" ];
+
+  #       meta = {
+  #         description = "Large language models on Apple silicon with MLX";
+  #         homepage = "https://github.com/ml-explore/mlx-lm";
+  #         # license = licenses.mit;
+  #         # platforms = platforms.darwin; # Apple Silicon only
+  #         mainProgram = "mlx_lm.server";
+  #       };
+
+  #     };
+  # };
+
+  pkgDefs.omlx = rec {
+    versions = {
+      aarch64-darwin."0.2.24-macos15-sequoia" = { sha256 = "07g4wqydlczcqhx7ahvdrsp1ygxnm8dqmqlifvq2xx071p3d11iz"; number = "0.2.24"; };
+    };
+    mkPkg = { pkgs, lib, version ? latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let versionInfo = versions.${system}.${version};
+      in pkgs.lib.darwin.installDmg {
+        # https://github.com/jundot/omlx/releases/download/v0.2.24/oMLX-0.2.24-macos15-sequoia.dmg
+        url = "https://github.com/jundot/omlx/releases/download/v${versionInfo.number}/oMLX-${version}.dmg";
+        inherit version;
+        sha256 = versionInfo.sha256;
+        appname = "oMLX";
+        meta = { description = "Local AI inference for Apple MLX."; homepage = "https://github.com/jundot/omlx"; };
+      };
+  };
+
+  # TODO try ? https://github.com/AtomicBot-ai/Atomic-Chat
+
 
 }
