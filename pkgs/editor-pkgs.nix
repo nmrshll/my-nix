@@ -101,19 +101,23 @@
       x86_64-linux."1.2.4".sha256 = "sha256:0pqy587d1kmdzz6jax2n56vz6av5jplmr3g3knasylw5sz202a06";
     };
     mkPkg = { pkgs, l, version ? "1.2.4", system ? pkgs.stdenv.hostPlatform.system, ... }:
-      let
-        url = pkgs.lib.forSystem {
-          aarch64-darwin = "https://windsurf-stable.codeiumdata.com/darwin-arm64-dmg/stable/7f3de2bfc56b2f76334027e4d55dd26daa003035/Windsurf-darwin-arm64-${version}.dmg";
-          # x86_64-linux = "https://windsurf-stable.codeiumdata.com/linux-x64/stable/${hash}/Windsurf-linux-x64-${version}.tar.gz"
-        };
-        # src = pkgs.lib.forSystem {
-        #   aarch64-darwin = { inherit url; sha = "sha256:1h05cvvk7qjsnws2y48aajabzgafhi0nmmk840f2x7cmjvqlfq1j"; };
-        #   x86_64-linux = { inherit url; sha = "sha256:0pqy587d1kmdzz6jax2n56vz6av5jplmr3g3knasylw5sz202a06"; };
-        # };
-      in
+      # let
+      #   # url = pkgs.lib.forSystem {
+      #   #   aarch64-darwin = "https://windsurf-stable.codeiumdata.com/darwin-arm64-dmg/stable/7f3de2bfc56b2f76334027e4d55dd26daa003035/Windsurf-darwin-arm64-${version}.dmg";
+      #   #   # x86_64-linux = "https://windsurf-stable.codeiumdata.com/linux-x64/stable/${hash}/Windsurf-linux-x64-${version}.tar.gz"
+      #   # };
+      #   # src = pkgs.lib.forSystem {
+      #   #   aarch64-darwin = { inherit url; sha = "sha256:1h05cvvk7qjsnws2y48aajabzgafhi0nmmk840f2x7cmjvqlfq1j"; };
+      #   #   x86_64-linux = { inherit url; sha = "sha256:0pqy587d1kmdzz6jax2n56vz6av5jplmr3g3knasylw5sz202a06"; };
+      #   # };
+      # in
       if pkgs.stdenv.hostPlatform.system == "aarch64-darwin" then
         (pkgs.lib.darwin.installDmg {
-          inherit url version;
+          url = pkgs.lib.forSystem {
+            aarch64-darwin = "https://windsurf-stable.codeiumdata.com/darwin-arm64-dmg/stable/7f3de2bfc56b2f76334027e4d55dd26daa003035/Windsurf-darwin-arm64-${version}.dmg";
+            # x86_64-linux = "https://windsurf-stable.codeiumdata.com/linux-x64/stable/${hash}/Windsurf-linux-x64-${version}.tar.gz"
+          };
+          inherit version;
           sha256 = versions.${system}.${version}.sha256;
           appname = "Windsurf";
           meta = { description = "Windsurf is an AI code editor."; homepage = "https://codeium.com/windsurf"; };
@@ -150,6 +154,3 @@
   };
 
 }
-
-
-
