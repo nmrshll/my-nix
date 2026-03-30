@@ -183,64 +183,181 @@ in
       };
   };
 
-  # TODO use python314Packages.mlx-lm
-  # pkgDefs.mlx-lm = rec {
-  #   versions = { };
-  #   mkPkg = { pkgs, version ? (latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
-  #     let in pkgs.python3.pkgs.buildPythonApplication rec {
-  #       pname = "mlx-lm";
-  #       version = "0.31.1";
-  #       pyproject = true;
+  # TODO use python314Packages.mlx-lm -> dep unzip is broken
+  # TODO below beautifulsoup is also broken
+  pkgDefs.mlx-lm = rec {
+    versions = {
+      aarch64-darwin."0.31.1".sha256 = "5KGXLpzGEmyay6HvEM8qOe5zUmFRo1VbZKzOQvfr7Sk=";
+      aarch64-darwin."0.31.0".sha256 = "1YZt2HtHyhP4h3WOcSytbN0sN2x58OYAmQtoxisNt1o=";
+    };
+    mkPkg = { pkgs, version ? (latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        versionInfo = versions.${system}.${version};
+        pyPkgs = pkgs.python314Packages;
+      in
+      pyPkgs.buildPythonApplication rec {
+        pname = "mlx-lm";
+        inherit version;
+        pyproject = true;
 
-  #       src = pkgs.fetchPypi {
-  #         inherit pname version;
-  #         sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
-  #       };
+        src = pkgs.fetchFromGitHub {
+          owner = "ml-explore";
+          repo = "mlx-lm";
+          tag = "v${version}";
+          hash = "sha256-${versionInfo.sha256}";
+        };
 
-  #       nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools wheel ];
-  #       propagatedBuildInputs = with pkgs.python3.pkgs; [
-  #         mlx
-  #         numpy
-  #         transformers
-  #         protobuf
-  #         pyyaml
-  #         jinja2
-  #         sentencepiece
-  #         pillow
-  #         requests
-  #         tqdm
-  #       ];
+        build-system = [ pyPkgs.setuptools ];
+        dependencies = [
+          pyPkgs.mlx
+          pyPkgs.transformers
+          pyPkgs.protobuf
+          pyPkgs.jinja2
+        ];
+        pythonRelaxDeps = [ "transformers" ];
+        doCheck = false; # Tests require additional dependencies
 
-  #       pythonImportsCheck = [ "mlx_lm" ];
+        meta = {
+          description = "LLM access to models using MLX";
+          homepage = "https://github.com/mlx-explore/mlx-lm";
+          # license = lib.licenses.mit;
+          # maintainers = with lib.maintainers; [ jwiegley ];
+        };
+      };
+    #   src = pkgs.fetchFromGitHub {
+    #     owner = "ml-explore";
+    #     repo = "mlx-lm";
+    #     tag = "v${version}";
+    #     sha256 = versionInfo.sha256;
+    #   };
 
-  #       meta = {
-  #         description = "Large language models on Apple silicon with MLX";
-  #         homepage = "https://github.com/ml-explore/mlx-lm";
-  #         # license = licenses.mit;
-  #         # platforms = platforms.darwin; # Apple Silicon only
-  #         mainProgram = "mlx_lm.server";
-  #       };
+    #   # workarounds for unavailable beautifulsoup4
+    #   bs4-fixed = pkgs.python3.pkgs.beautifulsoup4.overrideAttrs (oldAttrs: {
+    #     patches = [ ]; # Remove the patches that are failing to download
+    #   });
+    #   # Create a "fixed" aiohttp that uses the fixed bs4
+    #   aiohttp-fixed = pkgs.python3.pkgs.aiohttp.override {
+    #     beautifulsoup4 = bs4-fixed;
+    #   };
+    # in
+    # pkgs.python3.pkgs.buildPythonPackage {
+    #   inherit src;
+    #   pname = "mlx-lm";
+    #   version = "0.31.0";
+    #   pyproject = true;
 
-  #     };
-  # };
+    #   doCheck = false;
+    #   build-system = [ pkgs.python3.pkgs.setuptools ];
+    #   pythonRelaxDeps = [ "transformers" ];
+    #   dependencies = with pkgs.python3.pkgs; [ jinja2 mlx numpy protobuf pyyaml transformers ];
+    #   nativeCheckInputs = with pkgs.python3.pkgs; [ aiohttp-fixed lm-eval pytestCheckHook sentencepiece pkgs.writableTmpDirAsHomeHook ];
+    #   pythonImportsCheck = [ "mlx_lm" ];
+
+    #   disabledTestPaths = [
+    #     # Requires network access to huggingface.co
+    #     "tests/test_datsets.py"
+    #     "tests/test_generate.py"
+    #     "tests/test_prompt_cache.py::TestPromptCache"
+    #     "tests/test_server.py"
+    #     "tests/test_tokenizers.py"
+    #     "tests/test_utils.py::TestUtils::test_convert"
+    #     "tests/test_utils.py::TestUtils::test_load"
+
+    #     # RuntimeError: [metal_kernel] No GPU back-end.
+    #     "tests/test_losses.py"
+    #     "tests/test_models.py::TestModels::test_bitnet"
+
+    #     # TypeError: 'NoneType' object is not callable
+    #     "tests/test_models.py::TestModels::test_gated_delta"
+    #     "tests/test_models.py::TestModels::test_gated_delta_masked"
+    #   ];
+
+    #   meta = {
+    #     description = "Run LLMs with MLX";
+    #     homepage = "https://github.com/ml-explore/mlx-lm";
+    #     changelog = "https://github.com/ml-explore/mlx-lm/releases/tag/${src.tag}";
+    #     # license = lib.licenses.mit;
+    #   };
+    # };
+
+
+    # let in pkgs.python3.pkgs.buildPythonApplication rec {
+    #   pname = "mlx-lm";
+    #   version = "0.31.1";
+    #   pyproject = true;
+    #   src = pkgs.fetchPypi {
+    #     inherit pname version;
+    #     sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+    #   };
+    #   nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools wheel ];
+    #   propagatedBuildInputs = with pkgs.python3.pkgs; [
+    #     mlx
+    #     numpy
+    #     transformers
+    #     protobuf
+    #     pyyaml
+    #     jinja2
+    #     sentencepiece
+    #     pillow
+    #     requests
+    #     tqdm
+    #   ];
+    #   pythonImportsCheck = [ "mlx_lm" ];
+    #   meta = {
+    #     description = "Large language models on Apple silicon with MLX";
+    #     homepage = "https://github.com/ml-explore/mlx-lm";
+    #     # license = licenses.mit;
+    #     # platforms = platforms.darwin; # Apple Silicon only
+    #     mainProgram = "mlx_lm.server";
+    #   };
+    # };
+  };
 
   pkgDefs.omlx = rec {
     versions = {
+      # aarch64-darwin."0.3.0rc1-macos15-sequoia" = { sha256 = "1q1lndzayf7j7h658gigg3107hh8qbkvwwiibqazywgxjjggfrc6"; number = "0.3.0rc1"; };
       aarch64-darwin."0.2.24-macos15-sequoia" = { sha256 = "07g4wqydlczcqhx7ahvdrsp1ygxnm8dqmqlifvq2xx071p3d11iz"; number = "0.2.24"; };
     };
     mkPkg = { pkgs, lib, version ? latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
-      let versionInfo = versions.${system}.${version};
-      in pkgs.lib.darwin.installDmg {
-        # https://github.com/jundot/omlx/releases/download/v0.2.24/oMLX-0.2.24-macos15-sequoia.dmg
-        url = "https://github.com/jundot/omlx/releases/download/v${versionInfo.number}/oMLX-${version}.dmg";
-        inherit version;
-        sha256 = versionInfo.sha256;
-        appname = "oMLX";
-        meta = { description = "Local AI inference for Apple MLX."; homepage = "https://github.com/jundot/omlx"; };
+      let
+        versionInfo = versions.${system}.${version};
+        dotApp = pkgs.lib.darwin.installDmg {
+          # https://github.com/jundot/omlx/releases/download/v0.3.0rc1/oMLX-0.3.0rc1-macos15-sequoia.dmg
+          # https://github.com/jundot/omlx/releases/download/v0.2.24/oMLX-0.2.24-macos15-sequoia.dmg
+          url = "https://github.com/jundot/omlx/releases/download/v${versionInfo.number}/oMLX-${version}.dmg";
+          inherit version;
+          sha256 = versionInfo.sha256;
+          appname = "oMLX";
+          meta = { description = "Local AI inference for Apple MLX."; homepage = "https://github.com/jundot/omlx"; };
+        };
+      in
+      pkgs.symlinkJoin {
+        name = "omlx-${version}";
+        paths = [ dotApp ];
+        # postBuild = ''
+        #   mkdir -p $out/bin
+        #   # Link the CLI binary from inside the .app bundle to the bin folder
+        #   ln -s "$out/Applications/oMLX.app/Contents/MacOS/omlx-cli" $out/bin/omlx
+        # '';
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          mkdir -p $out/bin
+
+          # Define the path to the actual binary inside the app bundle
+          APP_BIN="$out/Applications/oMLX.app/Contents/MacOS/omlx-cli"
+
+          # Create a wrapper instead of a symlink.
+          # This prefixes the PATH with the location of python3 and the app's internal MacOS folder
+          # so that the script can find 'python3' and its sibling files.
+          makeWrapper "$APP_BIN" "$out/bin/omlx" \
+            --prefix PATH : "${lib.makeBinPath [ pkgs.python3 ]}:$(dirname "$APP_BIN")"
+        '';
       };
   };
 
   # TODO try ? https://github.com/AtomicBot-ai/Atomic-Chat
+
+  # TODO package bifrost: https://github.com/capsohq/bifrost/blob/4418dc8fa1ca6f606061edb356cf49efe99f4da5/nix/modules/bifrost.nix
 
 
 }
