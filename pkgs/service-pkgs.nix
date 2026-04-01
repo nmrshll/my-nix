@@ -355,6 +355,38 @@ in
       };
   };
 
+  pkgDefs.anemll = rec{
+    versions = {
+      aarch64-darwin."0.3.5".sha256 = "";
+    };
+    mkPkg = { pkgs, lib, version ? latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      pkgs.python3.pkgs.buildPythonApplication rec {
+        pname = "anemll";
+        version = "0.3.5";
+        pyproject = true;
+        nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools ];
+
+        src = pkgs.fetchFromGitHub {
+          owner = "Anemll";
+          repo = "Anemll";
+          rev = "refs/tags/v${version}";
+          hash = "sha256-${versions.${system}.${version}.sha256}";
+        };
+
+        propagatedBuildInputs = with pkgs.python3.pkgs; [ coremltools numpy tqdm transformers torch scikit-learn sentencepiece psutil ];
+        nativeCheckInputs = with pkgs.python3.pkgs; [ pytest pytest-cov ];
+        meta = {
+          description = "Open-source pipeline for accelerating LLMs on Apple Neural Engine (ANE)";
+          homepage = "https://anemll.com";
+          documentation = "https://anemll.com/docs";
+          license = lib.licenses.mit;
+          maintainers = [ ];
+          platforms = lib.platforms.darwin; # macOS only (requires Apple Neural Engine)
+          broken = !lib.stdenv.isDarwin;
+        };
+      };
+  };
+
   # TODO try ? https://github.com/AtomicBot-ai/Atomic-Chat
 
   # TODO package bifrost: https://github.com/capsohq/bifrost/blob/4418dc8fa1ca6f606061edb356cf49efe99f4da5/nix/modules/bifrost.nix
