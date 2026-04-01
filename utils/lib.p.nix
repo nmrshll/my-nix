@@ -14,7 +14,7 @@
     mapKeys = f: obj: listToAttrs (map
       (key: { name = f key; value = obj.${key}; })
       (attrNames obj));
-    prefixKeys = prefix: obj: mapKeys (k: "${prefix}_${k}") obj;
+    prefixKeys = prefix: obj: mapKeys (k: "${prefix}${k}") obj;
 
     deepMergeSetList = listOfAttrs:
       lib.zipAttrsWith
