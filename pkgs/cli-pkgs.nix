@@ -47,92 +47,88 @@
 
   pkgDefs.pi-coding-agent = rec {
     versions = {
+      aarch64-darwin."0.64.0" = { sha256 = "knCfmoTjq5RADkGRcX7AAxTBhW+2GL4pDtgvMH8pMoY="; npmDepsHash = "sha256-dzBmtAhm0X4TsKW9nwKVyhvYlMLphzNtKkDvubWQFPk="; };
       aarch64-darwin."0.58.3" = { sha256 = "3GrE60n+EY5G50iRrbH7R74e+LQIy1M9+huZTp0ZTns="; npmDepsHash = "sha256-EC5fXZTtBTRkYXLg5p4xWE/ghi2iw30XwnSqJs/PT8I="; };
     };
-    mkPkg = { pkgs, lib, version ? "0.58.3", system ? pkgs.stdenv.hostPlatform.system, ... }: pkgs.buildNpmPackage (finalAttrs: {
-      pname = "pi-coding-agent";
-      # version = "0.58.3";
-      inherit version;
+    mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let vData = versions.${system}.${version};
+      in pkgs.buildNpmPackage (finalAttrs: {
+        pname = "pi-coding-agent";
+        inherit version;
 
-      src = pkgs.fetchFromGitHub {
-        owner = "badlogic";
-        repo = "pi-mono";
-        tag = "v${finalAttrs.version}";
-        hash = "sha256-${versions.${system}.${version}.sha256}";
-      };
+        src = pkgs.fetchFromGitHub {
+          owner = "badlogic";
+          repo = "pi-mono";
+          tag = "v${finalAttrs.version}";
+          hash = "sha256-${vData.sha256}";
+        };
+        npmDepsHash = vData.npmDepsHash;
+        npmWorkspace = "packages/coding-agent";
 
-      # npmDepsHash = "sha256-EC5fXZTtBTRkYXLg5p4xWE/ghi2iw30XwnSqJs/PT8I=";
-      npmDepsHash = versions.${system}.${version}.npmDepsHash;
+        # Skip native module rebuild for unneeded workspaces (e.g. canvas from web-ui)
+        npmRebuildFlags = [ "--ignore-scripts" ];
+        nativeBuildInputs = [
+          pkgs.typescript-go
+          pkgs.makeBinaryWrapper
+        ];
 
-      npmWorkspace = "packages/coding-agent";
+        # Build workspace dependencies in order, then the coding-agent.
+        # We invoke tsgo directly for workspace deps to skip pi-ai's
+        # generate-models script which requires network access
+        # (models.generated.ts is committed to the repo).
+        buildPhase = ''
+          runHook preBuild
 
-      # Skip native module rebuild for unneeded workspaces (e.g. canvas from web-ui)
-      npmRebuildFlags = [ "--ignore-scripts" ];
+          tsgo -p packages/ai/tsconfig.build.json
+          tsgo -p packages/tui/tsconfig.build.json
+          tsgo -p packages/agent/tsconfig.build.json
+          npm run build --workspace=packages/coding-agent
 
-      nativeBuildInputs = [
-        pkgs.typescript-go
-        pkgs.makeBinaryWrapper
-      ];
+          runHook postBuild
+        '';
 
-      # Build workspace dependencies in order, then the coding-agent.
-      # We invoke tsgo directly for workspace deps to skip pi-ai's
-      # generate-models script which requires network access
-      # (models.generated.ts is committed to the repo).
-      buildPhase = ''
-        runHook preBuild
+        # npm workspace symlinks in the output point into packages/ which
+        # doesn't exist there. Replace runtime deps with built content and
+        # delete the rest.
+        postInstall = ''
+          local nm="$out/lib/node_modules/pi-monorepo/node_modules"
 
-        tsgo -p packages/ai/tsconfig.build.json
-        tsgo -p packages/tui/tsconfig.build.json
-        tsgo -p packages/agent/tsconfig.build.json
-        npm run build --workspace=packages/coding-agent
+          # Replace workspace deps needed at runtime with real copies
+          for ws in @mariozechner/pi-ai:packages/ai \
+                    @mariozechner/pi-agent-core:packages/agent \
+                    @mariozechner/pi-tui:packages/tui; do
+            IFS=: read -r pkg src <<< "$ws"
+            rm "$nm/$pkg"
+            cp -r "$src" "$nm/$pkg"
+          done
 
-        runHook postBuild
-      '';
+          # Delete remaining workspace symlinks
+          find "$nm" -type l -lname '*/packages/*' -delete
 
-      # npm workspace symlinks in the output point into packages/ which
-      # doesn't exist there. Replace runtime deps with built content and
-      # delete the rest.
-      postInstall = ''
-        local nm="$out/lib/node_modules/pi-monorepo/node_modules"
+          # Clean up now-dangling .bin symlinks
+          find "$nm/.bin" -xtype l -delete
+        '';
+        postFixup = "wrapProgram $out/bin/pi --prefix PATH : ${lib.makeBinPath [ pkgs.ripgrep ]}";
 
-        # Replace workspace deps needed at runtime with real copies
-        for ws in @mariozechner/pi-ai:packages/ai \
-                  @mariozechner/pi-agent-core:packages/agent \
-                  @mariozechner/pi-tui:packages/tui; do
-          IFS=: read -r pkg src <<< "$ws"
-          rm "$nm/$pkg"
-          cp -r "$src" "$nm/$pkg"
-        done
+        doInstallCheck = true;
+        nativeInstallCheckInputs = [
+          pkgs.writableTmpDirAsHomeHook
+          pkgs.pkgs.versionCheckHook
+        ];
+        versionCheckKeepEnvironment = [ "HOME" ];
+        versionCheckProgram = "${placeholder "out"}/bin/pi";
+        versionCheckProgramArg = "--version";
 
-        # Delete remaining workspace symlinks
-        find "$nm" -type l -lname '*/packages/*' -delete
+        # passthru.updateScript = nix-update-script { };
 
-        # Clean up now-dangling .bin symlinks
-        find "$nm/.bin" -xtype l -delete
-      '';
-      postFixup = "wrapProgram $out/bin/pi --prefix PATH : ${lib.makeBinPath [ pkgs.ripgrep ]}";
-
-      doInstallCheck = true;
-      nativeInstallCheckInputs = [
-        pkgs.writableTmpDirAsHomeHook
-        pkgs.pkgs.versionCheckHook
-      ];
-      versionCheckKeepEnvironment = [ "HOME" ];
-      versionCheckProgram = "${placeholder "out"}/bin/pi";
-      versionCheckProgramArg = "--version";
-
-      passthru.updateScript = nix-update-script { };
-
-      meta = {
-        description = "Coding agent CLI with read, bash, edit, write tools and session management";
-        homepage = "https://shittycodingagent.ai/";
-        downloadPage = "https://www.npmjs.com/package/@mariozechner/pi-coding-agent";
-        changelog = "https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md";
-        # license = lib.licenses.mit;
-        # maintainers = with lib.maintainers; [ munksgaard ];
-        mainProgram = "pi";
-      };
-    });
+        meta = {
+          description = "Coding agent CLI with read, bash, edit, write tools and session management";
+          homepage = "https://shittycodingagent.ai/";
+          downloadPage = "https://www.npmjs.com/package/@mariozechner/pi-coding-agent";
+          changelog = "https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/CHANGELOG.md";
+          mainProgram = "pi";
+        };
+      });
   };
 
   # TODO package https://github.com/ErfanY/krust
@@ -211,6 +207,29 @@
           maintainers = with flake.lib.maintainers; [ afterthought ];
           mainProgram = "br";
           platforms = platforms.unix;
+        };
+      };
+  };
+
+
+  pkgDefs.pi-acp = rec {
+    versions.aarch64-darwin."0.0.24" = { sha256 = "83wNlyOYLkCa6BH/Edal54ovXbAmP745qzSjD+9ZOIE="; npmDepsHash = "sha256-GNn4XTeFDrmWQeuLSjRlz4nwP5T76HCwBLnIDFPcJkg="; };
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+      in pkgs.buildNpmPackage rec {
+        pname = "pi-acp";
+        inherit version;
+
+        src = pkgs.fetchFromGitHub {
+          owner = "svkozak";
+          repo = "pi-acp";
+          rev = "v${version}";
+          sha256 = "${vData.sha256}";
+        };
+        npmDepsHash = vData.npmDepsHash;
+        meta = {
+          description = "ACP support for Pi coding agent";
+          mainProgram = "pi-acp";
         };
       };
   };
