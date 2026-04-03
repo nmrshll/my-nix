@@ -1,15 +1,4 @@
-let
-  # latest = system_versions: builtins.foldl (a: b: if a > b then a else b) "0" (builtins.attrNames system_versions);
-  # Pure builtins, no lib dependency
-  latest = system_versions:
-    let
-      versions = builtins.attrNames system_versions;
-      maxVersion = a: b: if builtins.compareVersions a b > 0 then a else b;
-    in
-    if versions == [ ] then "0"
-    else builtins.foldl' maxVersion (builtins.head versions) (builtins.tail versions);
-in
-{
+{ l, ... }: with builtins; {
 
   pkgDefs.handy = rec {
     versions = {
@@ -21,7 +10,7 @@ in
       aarch64-darwin."0.6.4".sha256 = "9trjwzQIqM5Okvnj2GAlBxKajyBiM0HbNmw4JukUsF4=";
     };
     mkPkg = { pkgs, version ? "0.7.11", system ? pkgs.stdenv.hostPlatform.system, ... }:
-      with builtins; let
+      let
         arch = elemAt (split "-" system) 0;
         url =
           if pkgs.stdenv.isDarwin then "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${arch}.app.tar.gz"
@@ -190,7 +179,7 @@ in
       aarch64-darwin."0.31.1".sha256 = "5KGXLpzGEmyay6HvEM8qOe5zUmFRo1VbZKzOQvfr7Sk=";
       aarch64-darwin."0.31.0".sha256 = "1YZt2HtHyhP4h3WOcSytbN0sN2x58OYAmQtoxisNt1o=";
     };
-    mkPkg = { pkgs, version ? (latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         versionInfo = versions.${system}.${version};
         pyPkgs = pkgs.python314Packages;
@@ -318,7 +307,7 @@ in
       # aarch64-darwin."0.3.0rc1-macos15-sequoia" = { sha256 = "1q1lndzayf7j7h658gigg3107hh8qbkvwwiibqazywgxjjggfrc6"; number = "0.3.0rc1"; };
       aarch64-darwin."0.2.24-macos15-sequoia" = { sha256 = "07g4wqydlczcqhx7ahvdrsp1ygxnm8dqmqlifvq2xx071p3d11iz"; number = "0.2.24"; };
     };
-    mkPkg = { pkgs, lib, version ? latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         versionInfo = versions.${system}.${version};
         dotApp = pkgs.lib.darwin.installDmg {
@@ -359,7 +348,7 @@ in
     versions = {
       aarch64-darwin."0.3.5".sha256 = "";
     };
-    mkPkg = { pkgs, lib, version ? latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
       pkgs.python3.pkgs.buildPythonApplication rec {
         pname = "anemll";
         version = "0.3.5";

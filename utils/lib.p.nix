@@ -84,6 +84,14 @@
     };
 
     constOpt = v: lib.mkOption { type = lib.types.unspecified; readOnly = true; default = v; };
+
+    latest = system_versions:
+      let
+        versions = attrNames system_versions;
+        maxVersion = a: b: if compareVersions a b > 0 then a else b;
+      in
+      if versions == [ ] then "0"
+      else foldl' maxVersion (head versions) (tail versions);
   };
 
   # TODO should all lib go in here ???? legacy nixpkgs way vs new way ???
