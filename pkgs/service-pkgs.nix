@@ -2,6 +2,7 @@
 
   pkgDefs.handy = rec {
     versions = {
+      aarch64-darwin."0.8.2".sha256 = "1a2156h5sfnr5mydps7b6r701nqzkpmhb8m1wpizdppchy563vnp";
       aarch64-darwin."0.7.11".sha256 = "0ill0rsmvxy81yhgdp4wk39nvb60r2qhcv12fywb1z5ppab4d1za";
       aarch64-darwin."0.7.9".sha256 = "0hsrklmphdd14za0d7n1c96xbw9g3n6bfg1jn7jvjwysh17affbv";
       aarch64-darwin."0.6.5".sha256 = "1vmrbj35cjrxlqq8d2a12chhmg41z2fb3dvp51dm3hg795sr8rwb";
@@ -9,7 +10,7 @@
       x86_64-darwin."0.6.4".sha256 = "yTRNaH/P5nMKT2oYk9b9oRH8s6PAi30Vtfw9TgE7WnE=";
       aarch64-darwin."0.6.4".sha256 = "9trjwzQIqM5Okvnj2GAlBxKajyBiM0HbNmw4JukUsF4=";
     };
-    mkPkg = { pkgs, version ? "0.7.11", system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         arch = elemAt (split "-" system) 0;
         url =
