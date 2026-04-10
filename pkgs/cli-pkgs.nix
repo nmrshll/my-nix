@@ -257,4 +257,26 @@
       };
   };
 
+
+  pkgDefs.dumap = rec {
+    versions.aarch64-darwin."1.1.0" = { sha256 = "nVG9A+QBTRo+M4ogwHOARRvihsWka/I4CPzY5M9yONc="; };
+
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+        src = pkgs.fetchFromGitHub {
+          owner = "jrobhoward";
+          repo = "dumap";
+          tag = "v${version}";
+          sha256 = vData.sha256;
+        };
+      in
+      pkgs.rustPlatform.buildRustPackage {
+        pname = "dumap";
+        inherit src version;
+        cargoLock.lockFile = "${src}/Cargo.lock";
+        doCheck = false;
+      };
+  };
+
 }
