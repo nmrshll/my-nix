@@ -279,4 +279,96 @@
       };
   };
 
+
+  # NOTE: Exists in unstable nixpkgs
+  # pkgDefs.qwen-code = rec {
+  #   versions.aarch64-darwin."0.14.3" = { sha256 = "sha256-RtZlwZev8zv3yMn+cCQpGvyPq/gyA39N4Iq0qFBTERY="; };
+
+  #   mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+  #     # src = pkgs.fetchFromGitHub {
+  #     #   owner = "";
+  #     #   repo = "";
+  #     #   tag = "v${version}";
+  #     #   sha256 = vData.sha256;
+  #     # };
+  #     let vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+  #     in pkgs.buildNpmPackage (finalAttrs: {
+  #       inherit (pkgs) npmConfigHook;
+  #       pname = "qwen-code";
+  #       inherit version;
+
+  #       src = pkgs.fetchFromGitHub {
+  #         owner = "QwenLM";
+  #         repo = "qwen-code";
+  #         tag = "v${finalAttrs.version}";
+  #         sha256 = vData.sha256;
+  #       };
+
+  #       npmDeps = pkgs.fetchNpmDepsWithPackuments {
+  #         inherit (finalAttrs) src;
+  #         name = "${finalAttrs.pname}-${finalAttrs.version}-npm-deps";
+  #         hash = "sha256-13YseUyf7l3XwdsE4cGlXRbpK0zeADC6sGniKoEgGzk=";
+  #         fetcherVersion = 2;
+  #       };
+  #       makeCacheWritable = true;
+
+  #       nativeBuildInputs = [ pkgs.pkg-config pkgs.git ] ++ l.optionals pkgs.stdenv.hostPlatform.isDarwin [
+  #         pkgs.clang_20 # Works around node-addon-api constant expression issue with clang 21+ (keytar)
+  #         pkgs.own.my-nix.darwinOpenptyHook # Fixes node-pty openpty/forkpty build issue
+  #       ];
+
+  #       buildInputs = [ pkgs.ripgrep pkgs.glib pkgs.libsecret ];
+
+  #       buildPhase = ''
+  #         runHook preBuild
+
+  #         npm run generate
+  #         # The CLI esbuild bundle resolves imports against workspace dist/ output,
+  #         # so build the workspaces it depends on first (subset of upstream's
+  #         # scripts/build.js buildOrder; we skip webui/sdk/vscode/plugin-example
+  #         # as the bundled CLI does not pull them in).
+  #         for ws in \
+  #           packages/web-templates \
+  #           packages/channels/base \
+  #           packages/channels/telegram \
+  #           packages/channels/weixin \
+  #           packages/channels/dingtalk
+  #         do
+  #           npm run build --workspace=$ws
+  #         done
+  #         npm run bundle
+
+  #         runHook postBuild
+  #       '';
+
+  #       installPhase = ''
+  #         runHook preInstall
+
+  #         mkdir -p $out/bin $out/share/qwen-code
+  #         cp -r dist/* $out/share/qwen-code/
+  #         # Install production dependencies only
+  #         npm prune --production
+  #         cp -r node_modules $out/share/qwen-code/
+  #         # Remove broken symlinks that cause issues in Nix environment
+  #         find $out/share/qwen-code/node_modules -type l -delete || true
+  #         patchShebangs $out/share/qwen-code
+  #         ln -s $out/share/qwen-code/cli.js $out/bin/qwen
+
+  #         runHook postInstall
+  #       '';
+
+  #       doInstallCheck = true;
+  #       nativeInstallCheckInputs = [ pkgs.versionCheckHook ];
+
+  #       passthru.category = "AI Coding Agents";
+
+  #       meta = {
+  #         description = "Command-line AI workflow tool for Qwen3-Coder models";
+  #         homepage = "https://github.com/QwenLM/qwen-code";
+  #         changelog = "https://github.com/QwenLM/qwen-code/releases";
+  #         mainProgram = "qwen";
+  #       };
+  #     });
+  # };
+
 }
