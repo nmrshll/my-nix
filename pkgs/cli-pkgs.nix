@@ -234,4 +234,27 @@
       };
   };
 
+  pkgDefs.claw-code = rec {
+    versions.aarch64-darwin."0.1.0_20260410" = { sha256 = "TqTrehnOyj/yExzADQTESmPU44ccwsVJM6pBd/DBHKA="; rev = "8aa1fa2cc931007f537854b1b0f0b61fdc986a50"; };
+    # versions.aarch64-darwin."0.1.0" = { sha256 = "ngAd6WjyvVAKotPY0Tl9ea8DpQuSGkrclZdyiGpnyDo="; rev = "be561bfdeb92fce7011938e748ee20051460d6a4"; };
+
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+        src = pkgs.fetchFromGitHub {
+          owner = "ultraworkers";
+          repo = "claw-code";
+          rev = vData.rev;
+          sha256 = vData.sha256;
+        };
+      in
+      pkgs.rustPlatform.buildRustPackage {
+        pname = "claw";
+        version = version;
+        src = "${src}/rust";
+        cargoLock.lockFile = "${src}/rust/Cargo.lock";
+        doCheck = false; # Some tests are network-based, which won't work in a nix derivation
+      };
+  };
+
 }
