@@ -47,6 +47,7 @@
 
   pkgDefs.pi-coding-agent = rec {
     versions = {
+      aarch64-darwin."0.70.2" = { sha256 = "qqmJloTp3mWuZBGgpwoyoFyXx6QD8xhJEwCZb7xFabM="; npmDepsHash = "sha256-ImDvTC0Nm+IGYJuqjwUUfnOtA65uJvjlpP4h2Xt/2vE="; };
       aarch64-darwin."0.64.0" = { sha256 = "knCfmoTjq5RADkGRcX7AAxTBhW+2GL4pDtgvMH8pMoY="; npmDepsHash = "sha256-dzBmtAhm0X4TsKW9nwKVyhvYlMLphzNtKkDvubWQFPk="; };
       aarch64-darwin."0.58.3" = { sha256 = "3GrE60n+EY5G50iRrbH7R74e+LQIy1M9+huZTp0ZTns="; npmDepsHash = "sha256-EC5fXZTtBTRkYXLg5p4xWE/ghi2iw30XwnSqJs/PT8I="; };
     };
@@ -60,7 +61,7 @@
           owner = "badlogic";
           repo = "pi-mono";
           tag = "v${finalAttrs.version}";
-          hash = "sha256-${vData.sha256}";
+          sha256 = "${vData.sha256}";
         };
         npmDepsHash = vData.npmDepsHash;
         npmWorkspace = "packages/coding-agent";
