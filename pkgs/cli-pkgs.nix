@@ -52,17 +52,18 @@
       aarch64-darwin."0.58.3" = { sha256 = "3GrE60n+EY5G50iRrbH7R74e+LQIy1M9+huZTp0ZTns="; npmDepsHash = "sha256-EC5fXZTtBTRkYXLg5p4xWE/ghi2iw30XwnSqJs/PT8I="; };
     };
     mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
-      let vData = versions.${system}.${version};
-      in pkgs.buildNpmPackage (finalAttrs: {
-        pname = "pi-coding-agent";
-        inherit version;
-
+      let
+        vData = versions.${system}.${version};
         src = pkgs.fetchFromGitHub {
           owner = "badlogic";
           repo = "pi-mono";
-          tag = "v${finalAttrs.version}";
+          tag = "v${version}";
           sha256 = "${vData.sha256}";
         };
+      in
+      pkgs.buildNpmPackage (finalAttrs: {
+        pname = "pi-coding-agent";
+        inherit version src;
         npmDepsHash = vData.npmDepsHash;
         npmWorkspace = "packages/coding-agent";
 
@@ -121,6 +122,7 @@
         versionCheckProgramArg = "--version";
 
         # passthru.updateScript = nix-update-script { };
+        passthru = { inherit src version; };
 
         meta = {
           description = "Coding agent CLI with read, bash, edit, write tools and session management";
