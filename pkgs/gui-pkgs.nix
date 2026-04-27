@@ -1,10 +1,10 @@
-{
+{ l, ... }: {
 
   pkgDefs.antigravity = rec {
     versions = {
       aarch64-darwin."1.16.5-6703236727046144".sha256 = "sha256:1nc2fsd4hmlvh1b5vh0ndffy6q7xng9xdb931c0dzkpz190alr0z";
     };
-    mkPkg = { pkgs, l, version ? "1.16.5-6703236727046144", system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, version ? "1.16.5-6703236727046144", system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         url = pkgs.lib.forSystem {
           aarch64-darwin = "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/${version}/darwin-arm/Antigravity.dmg";
@@ -20,11 +20,12 @@
 
   pkgDefs.anytype = rec {
     versions = {
+      aarch64-darwin."0.54.37-alpha".sha256 = "1ggjj7fc2qivlx0ywsxasnp8qf3ciqfk6bp3iicirl2ski3jqp95";
       aarch64-darwin."0.53.1".sha256 = "0v49qj232mkpx54z99nbmiafkvagkhk2xy8h8yyz95jizklhbh6g";
       aarch64-darwin."0.52.4".sha256 = "05syxapx4i5qrr2l5f12vs6wn74zixqn2d83mz0lxlhyi7x635kp";
       aarch64-darwin."0.47.3".sha256 = "1xs52cnr81fzqg4cp7cbvmlnjgi548nv8sxbvdsd4gvl3v09c3qj";
     };
-    mkPkg = { pkgs, l, version ? "0.53.1", system ? pkgs.stdenv.hostPlatform.system, ... }:
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         url = pkgs.lib.forSystem {
           aarch64-darwin = "https://anytype-release.fra1.cdn.digitaloceanspaces.com/Anytype-${version}-mac-arm64.dmg";
@@ -328,7 +329,7 @@
             installed_version=$(defaults read /Applications/LuLu.app/Contents/Info.plist CFBundleShortVersionString)
             if [ "${version}" = "$installed_version" ]; then exit 0; fi
           fi
-          
+
           MOUNT_POINT="/tmp/LuLu_Mount_$$"
           cleanup() {
             if [ -d "$MOUNT_POINT" ]; then

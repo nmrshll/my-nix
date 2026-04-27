@@ -4,6 +4,7 @@
     dbgJSON = o: (trace (toJSON o) o);
     dbgAttrs = o: (trace (attrNames o) o);
 
+    dbg = dbg3;
     dbg2 = o: (lib.traceSeqN 2 o) o;
     dbg3 = o: (lib.traceSeqN 3 o) o;
     dbg4 = o: (lib.traceSeqN 4 o) o;
