@@ -175,133 +175,133 @@
 
   # TODO use python314Packages.mlx-lm -> dep unzip is broken
   # TODO below beautifulsoup is also broken
-  pkgDefs.mlx-lm = rec {
-    versions = {
-      aarch64-darwin."0.31.1".sha256 = "5KGXLpzGEmyay6HvEM8qOe5zUmFRo1VbZKzOQvfr7Sk=";
-      aarch64-darwin."0.31.0".sha256 = "1YZt2HtHyhP4h3WOcSytbN0sN2x58OYAmQtoxisNt1o=";
-    };
-    mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
-      let
-        versionInfo = versions.${system}.${version};
-        pyPkgs = pkgs.python314Packages;
-      in
-      pyPkgs.buildPythonApplication rec {
-        pname = "mlx-lm";
-        inherit version;
-        pyproject = true;
+  # pkgDefs.mlx-lm = rec {
+  #   versions = {
+  #     aarch64-darwin."0.31.1".sha256 = "5KGXLpzGEmyay6HvEM8qOe5zUmFRo1VbZKzOQvfr7Sk=";
+  #     aarch64-darwin."0.31.0".sha256 = "1YZt2HtHyhP4h3WOcSytbN0sN2x58OYAmQtoxisNt1o=";
+  #   };
+  #   mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+  #     let
+  #       versionInfo = versions.${system}.${version};
+  #       pyPkgs = pkgs.python314Packages;
+  #     in
+  #     pyPkgs.buildPythonApplication rec {
+  #       pname = "mlx-lm";
+  #       inherit version;
+  #       pyproject = true;
 
-        src = pkgs.fetchFromGitHub {
-          owner = "ml-explore";
-          repo = "mlx-lm";
-          tag = "v${version}";
-          hash = "sha256-${versionInfo.sha256}";
-        };
+  #       src = pkgs.fetchFromGitHub {
+  #         owner = "ml-explore";
+  #         repo = "mlx-lm";
+  #         tag = "v${version}";
+  #         hash = "sha256-${versionInfo.sha256}";
+  #       };
 
-        build-system = [ pyPkgs.setuptools ];
-        dependencies = [
-          pyPkgs.mlx
-          pyPkgs.transformers
-          pyPkgs.protobuf
-          pyPkgs.jinja2
-        ];
-        pythonRelaxDeps = [ "transformers" ];
-        doCheck = false; # Tests require additional dependencies
+  #       build-system = [ pyPkgs.setuptools ];
+  #       dependencies = [
+  #         pyPkgs.mlx
+  #         pyPkgs.transformers
+  #         pyPkgs.protobuf
+  #         pyPkgs.jinja2
+  #       ];
+  #       pythonRelaxDeps = [ "transformers" ];
+  #       doCheck = false; # Tests require additional dependencies
 
-        meta = {
-          description = "LLM access to models using MLX";
-          homepage = "https://github.com/mlx-explore/mlx-lm";
-          # license = lib.licenses.mit;
-          # maintainers = with lib.maintainers; [ jwiegley ];
-        };
-      };
-    #   src = pkgs.fetchFromGitHub {
-    #     owner = "ml-explore";
-    #     repo = "mlx-lm";
-    #     tag = "v${version}";
-    #     sha256 = versionInfo.sha256;
-    #   };
+  #       meta = {
+  #         description = "LLM access to models using MLX";
+  #         homepage = "https://github.com/mlx-explore/mlx-lm";
+  #         # license = lib.licenses.mit;
+  #         # maintainers = with lib.maintainers; [ jwiegley ];
+  #       };
+  #     };
+  #   #   src = pkgs.fetchFromGitHub {
+  #   #     owner = "ml-explore";
+  #   #     repo = "mlx-lm";
+  #   #     tag = "v${version}";
+  #   #     sha256 = versionInfo.sha256;
+  #   #   };
 
-    #   # workarounds for unavailable beautifulsoup4
-    #   bs4-fixed = pkgs.python3.pkgs.beautifulsoup4.overrideAttrs (oldAttrs: {
-    #     patches = [ ]; # Remove the patches that are failing to download
-    #   });
-    #   # Create a "fixed" aiohttp that uses the fixed bs4
-    #   aiohttp-fixed = pkgs.python3.pkgs.aiohttp.override {
-    #     beautifulsoup4 = bs4-fixed;
-    #   };
-    # in
-    # pkgs.python3.pkgs.buildPythonPackage {
-    #   inherit src;
-    #   pname = "mlx-lm";
-    #   version = "0.31.0";
-    #   pyproject = true;
+  #   #   # workarounds for unavailable beautifulsoup4
+  #   #   bs4-fixed = pkgs.python3.pkgs.beautifulsoup4.overrideAttrs (oldAttrs: {
+  #   #     patches = [ ]; # Remove the patches that are failing to download
+  #   #   });
+  #   #   # Create a "fixed" aiohttp that uses the fixed bs4
+  #   #   aiohttp-fixed = pkgs.python3.pkgs.aiohttp.override {
+  #   #     beautifulsoup4 = bs4-fixed;
+  #   #   };
+  #   # in
+  #   # pkgs.python3.pkgs.buildPythonPackage {
+  #   #   inherit src;
+  #   #   pname = "mlx-lm";
+  #   #   version = "0.31.0";
+  #   #   pyproject = true;
 
-    #   doCheck = false;
-    #   build-system = [ pkgs.python3.pkgs.setuptools ];
-    #   pythonRelaxDeps = [ "transformers" ];
-    #   dependencies = with pkgs.python3.pkgs; [ jinja2 mlx numpy protobuf pyyaml transformers ];
-    #   nativeCheckInputs = with pkgs.python3.pkgs; [ aiohttp-fixed lm-eval pytestCheckHook sentencepiece pkgs.writableTmpDirAsHomeHook ];
-    #   pythonImportsCheck = [ "mlx_lm" ];
+  #   #   doCheck = false;
+  #   #   build-system = [ pkgs.python3.pkgs.setuptools ];
+  #   #   pythonRelaxDeps = [ "transformers" ];
+  #   #   dependencies = with pkgs.python3.pkgs; [ jinja2 mlx numpy protobuf pyyaml transformers ];
+  #   #   nativeCheckInputs = with pkgs.python3.pkgs; [ aiohttp-fixed lm-eval pytestCheckHook sentencepiece pkgs.writableTmpDirAsHomeHook ];
+  #   #   pythonImportsCheck = [ "mlx_lm" ];
 
-    #   disabledTestPaths = [
-    #     # Requires network access to huggingface.co
-    #     "tests/test_datsets.py"
-    #     "tests/test_generate.py"
-    #     "tests/test_prompt_cache.py::TestPromptCache"
-    #     "tests/test_server.py"
-    #     "tests/test_tokenizers.py"
-    #     "tests/test_utils.py::TestUtils::test_convert"
-    #     "tests/test_utils.py::TestUtils::test_load"
+  #   #   disabledTestPaths = [
+  #   #     # Requires network access to huggingface.co
+  #   #     "tests/test_datsets.py"
+  #   #     "tests/test_generate.py"
+  #   #     "tests/test_prompt_cache.py::TestPromptCache"
+  #   #     "tests/test_server.py"
+  #   #     "tests/test_tokenizers.py"
+  #   #     "tests/test_utils.py::TestUtils::test_convert"
+  #   #     "tests/test_utils.py::TestUtils::test_load"
 
-    #     # RuntimeError: [metal_kernel] No GPU back-end.
-    #     "tests/test_losses.py"
-    #     "tests/test_models.py::TestModels::test_bitnet"
+  #   #     # RuntimeError: [metal_kernel] No GPU back-end.
+  #   #     "tests/test_losses.py"
+  #   #     "tests/test_models.py::TestModels::test_bitnet"
 
-    #     # TypeError: 'NoneType' object is not callable
-    #     "tests/test_models.py::TestModels::test_gated_delta"
-    #     "tests/test_models.py::TestModels::test_gated_delta_masked"
-    #   ];
+  #   #     # TypeError: 'NoneType' object is not callable
+  #   #     "tests/test_models.py::TestModels::test_gated_delta"
+  #   #     "tests/test_models.py::TestModels::test_gated_delta_masked"
+  #   #   ];
 
-    #   meta = {
-    #     description = "Run LLMs with MLX";
-    #     homepage = "https://github.com/ml-explore/mlx-lm";
-    #     changelog = "https://github.com/ml-explore/mlx-lm/releases/tag/${src.tag}";
-    #     # license = lib.licenses.mit;
-    #   };
-    # };
+  #   #   meta = {
+  #   #     description = "Run LLMs with MLX";
+  #   #     homepage = "https://github.com/ml-explore/mlx-lm";
+  #   #     changelog = "https://github.com/ml-explore/mlx-lm/releases/tag/${src.tag}";
+  #   #     # license = lib.licenses.mit;
+  #   #   };
+  #   # };
 
 
-    # let in pkgs.python3.pkgs.buildPythonApplication rec {
-    #   pname = "mlx-lm";
-    #   version = "0.31.1";
-    #   pyproject = true;
-    #   src = pkgs.fetchPypi {
-    #     inherit pname version;
-    #     sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
-    #   };
-    #   nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools wheel ];
-    #   propagatedBuildInputs = with pkgs.python3.pkgs; [
-    #     mlx
-    #     numpy
-    #     transformers
-    #     protobuf
-    #     pyyaml
-    #     jinja2
-    #     sentencepiece
-    #     pillow
-    #     requests
-    #     tqdm
-    #   ];
-    #   pythonImportsCheck = [ "mlx_lm" ];
-    #   meta = {
-    #     description = "Large language models on Apple silicon with MLX";
-    #     homepage = "https://github.com/ml-explore/mlx-lm";
-    #     # license = licenses.mit;
-    #     # platforms = platforms.darwin; # Apple Silicon only
-    #     mainProgram = "mlx_lm.server";
-    #   };
-    # };
-  };
+  #   # let in pkgs.python3.pkgs.buildPythonApplication rec {
+  #   #   pname = "mlx-lm";
+  #   #   version = "0.31.1";
+  #   #   pyproject = true;
+  #   #   src = pkgs.fetchPypi {
+  #   #     inherit pname version;
+  #   #     sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash
+  #   #   };
+  #   #   nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools wheel ];
+  #   #   propagatedBuildInputs = with pkgs.python3.pkgs; [
+  #   #     mlx
+  #   #     numpy
+  #   #     transformers
+  #   #     protobuf
+  #   #     pyyaml
+  #   #     jinja2
+  #   #     sentencepiece
+  #   #     pillow
+  #   #     requests
+  #   #     tqdm
+  #   #   ];
+  #   #   pythonImportsCheck = [ "mlx_lm" ];
+  #   #   meta = {
+  #   #     description = "Large language models on Apple silicon with MLX";
+  #   #     homepage = "https://github.com/ml-explore/mlx-lm";
+  #   #     # license = licenses.mit;
+  #   #     # platforms = platforms.darwin; # Apple Silicon only
+  #   #     mainProgram = "mlx_lm.server";
+  #   #   };
+  #   # };
+  # };
 
   pkgDefs.omlx = rec {
     versions = {
@@ -345,37 +345,38 @@
       };
   };
 
-  pkgDefs.anemll = rec{
-    versions = {
-      aarch64-darwin."0.3.5".sha256 = "";
-    };
-    mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
-      pkgs.python3.pkgs.buildPythonApplication rec {
-        pname = "anemll";
-        version = "0.3.5";
-        pyproject = true;
-        nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools ];
+  # TEMP BROKEN
+  # pkgDefs.anemll = rec{
+  #   versions = {
+  #     aarch64-darwin."0.3.5".sha256 = "";
+  #   };
+  #   mkPkg = { pkgs, lib, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+  #     pkgs.python3.pkgs.buildPythonApplication rec {
+  #       pname = "anemll";
+  #       version = "0.3.5";
+  #       pyproject = true;
+  #       nativeBuildInputs = with pkgs.python3.pkgs; [ setuptools ];
 
-        src = pkgs.fetchFromGitHub {
-          owner = "Anemll";
-          repo = "Anemll";
-          rev = "refs/tags/v${version}";
-          hash = "sha256-${versions.${system}.${version}.sha256}";
-        };
+  #       src = pkgs.fetchFromGitHub {
+  #         owner = "Anemll";
+  #         repo = "Anemll";
+  #         rev = "refs/tags/v${version}";
+  #         hash = "sha256-${versions.${system}.${version}.sha256}";
+  #       };
 
-        propagatedBuildInputs = with pkgs.python3.pkgs; [ coremltools numpy tqdm transformers torch scikit-learn sentencepiece psutil ];
-        nativeCheckInputs = with pkgs.python3.pkgs; [ pytest pytest-cov ];
-        meta = {
-          description = "Open-source pipeline for accelerating LLMs on Apple Neural Engine (ANE)";
-          homepage = "https://anemll.com";
-          documentation = "https://anemll.com/docs";
-          license = lib.licenses.mit;
-          maintainers = [ ];
-          platforms = lib.platforms.darwin; # macOS only (requires Apple Neural Engine)
-          broken = !lib.stdenv.isDarwin;
-        };
-      };
-  };
+  #       propagatedBuildInputs = with pkgs.python3.pkgs; [ coremltools numpy tqdm transformers torch scikit-learn sentencepiece psutil ];
+  #       nativeCheckInputs = with pkgs.python3.pkgs; [ pytest pytest-cov ];
+  #       meta = {
+  #         description = "Open-source pipeline for accelerating LLMs on Apple Neural Engine (ANE)";
+  #         homepage = "https://anemll.com";
+  #         documentation = "https://anemll.com/docs";
+  #         license = lib.licenses.mit;
+  #         maintainers = [ ];
+  #         platforms = lib.platforms.darwin; # macOS only (requires Apple Neural Engine)
+  #         broken = !pkgs.stdenv.isDarwin;
+  #       };
+  #     };
+  # };
 
   # TODO try ? https://github.com/AtomicBot-ai/Atomic-Chat
 
