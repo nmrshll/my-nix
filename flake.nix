@@ -43,8 +43,10 @@
     systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
     imports = parts ++ [ extraFlakeModules.exposeInputs ];
 
-    perSystem = { config, l, ... }: {
+    perSystem = { config, l, self', ... }: {
       packages = l.flatMapPkgs config.expose.packages;
+      # This tells Nix: "To check this flake, try to build all my packages"
+      checks = self'.packages;
     };
 
     flake.flakeModules = {
