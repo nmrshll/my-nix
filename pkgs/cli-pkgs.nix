@@ -282,6 +282,34 @@
       };
   };
 
+  pkgDefs.tilth = rec {
+    versions.aarch64-darwin."0.6.3".sha256 = "xP9zsOmzAJKbQBeRFdbWqt3CGjj7rJpbCIvIo+f6efc=";
+    mkPkg = { pkgs, l, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+        src = pkgs.fetchFromGitHub {
+          owner = "jahala";
+          repo = "tilth";
+          tag = "v${version}";
+          sha256 = vData.sha256;
+        };
+        cargoToml = l.importTOML "${src}/Cargo.toml";
+      in
+      pkgs.rustPlatform.buildRustPackage {
+        pname = cargoToml.package.name;
+        inherit (cargoToml.package) version;
+        inherit src;
+        doCheck = false;
+        cargoLock.lockFile = "${src}/Cargo.lock";
+        meta = {
+          inherit (cargoToml.package) description;
+          homepage = "https://github.com/jahala/tilth";
+          license = l.licenses.mit;
+          mainProgram = "tilth";
+        };
+      };
+  };
+
 
   # NOTE: Exists in unstable nixpkgs
   # pkgDefs.qwen-code = rec {
