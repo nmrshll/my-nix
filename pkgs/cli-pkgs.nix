@@ -293,18 +293,16 @@
           tag = "v${version}";
           sha256 = vData.sha256;
         };
-        cargoToml = l.importTOML "${src}/Cargo.toml";
       in
       pkgs.rustPlatform.buildRustPackage {
-        pname = cargoToml.package.name;
-        inherit (cargoToml.package) version;
-        inherit src;
+        pname = "tilth";
+        inherit src version;
         doCheck = false;
         cargoLock.lockFile = "${src}/Cargo.lock";
         meta = {
-          inherit (cargoToml.package) description;
+          inherit "Smart(er) code reading for humans and AI agents";
           homepage = "https://github.com/jahala/tilth";
-          license = l.licenses.mit;
+          license = pkgs.lib.licenses.mit;
           mainProgram = "tilth";
         };
       };
