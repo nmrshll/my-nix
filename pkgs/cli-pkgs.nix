@@ -310,6 +310,41 @@
       };
   };
 
+  pkgDefs.poolside-cli = rec {
+    versions.aarch64-darwin."1.0.0".sha256 = "/nYYNu9hZ6SvoV8lCkfNo0YtqjPtJgrIutEndWYVgIg=";
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        # Mapping Nix system strings to the script's naming convention
+        os = if pkgs.stdenv.isDarwin then "darwin" else "linux";
+        arch = if pkgs.stdenv.isAarch64 then "arm64" else "amd64";
+      in
+      pkgs.stdenv.mkDerivation {
+        pname = "pool";
+        inherit version;
+        src = pkgs.fetchurl {
+          url = "https://downloads.poolside.ai/pool/v${version}/pool-${os}-${arch}.tar.gz";
+          sha256 = versions.${system}.${version}.sha256;
+        };
+        # We don't need to build anything, just unpack and install
+        sourceRoot = ".";
+        installPhase = ''
+          mkdir -p $out/bin
+          # The script says the binary inside is named pool-os-arch
+          cp pool-${os}-${arch} $out/bin/pool
+          chmod +x $out/bin/pool
+        '';
+        passthru.latest_version_url = "https://downloads.poolside.ai/pool/pool-latest-version.txt";
+        meta = {
+          description = "Poolside AI CLI";
+          homepage = "https://poolside.ai";
+          license = pkgs.lib.licenses.unfree; # Matches the EULA requirement in the script
+          # platforms = supportedSystems;
+        };
+      };
+
+
+  };
+
 
   # NOTE: Exists in unstable nixpkgs
   # pkgDefs.qwen-code = rec {
