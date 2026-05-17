@@ -2,11 +2,11 @@
   "nodes": {
     "crane": {
       "locked": {
-        "lastModified": 1778106249,
-        "narHash": "sha256-cM/AuKy5tMhwOOQIbha8ZRRMHVfNf7cv2aljIw+qoCg=",
+        "lastModified": 1779041105,
+        "narHash": "sha256-nnGD2f8OlAZT2i5OfwikJsw+ifWfiA4d6A8BWlgOXV0=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "6d015ea29630b7ad2402841386da2cb617a470a7",
+        "rev": "10e6e3cb966f7cfcc789fe5eee7a85f3188ce08b",
         "type": "github"
       },
       "original": {
@@ -104,11 +104,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778754426,
-        "narHash": "sha256-9agiA2LStvrREod1qyz9IHs6zU/rTA9VcI+1wQcvUt4=",
+        "lastModified": 1779046325,
+        "narHash": "sha256-+sm4908w8eodr3W2SLCpmMNz1mxVB0QMl5qcq8dI/rw=",
         "ref": "refs/heads/main",
-        "rev": "bc649e78cc944b74bcf135c95b002ca2f064cc2c",
-        "revCount": 105,
+        "rev": "8387ecc359c9211c8e27c0897603bf2f700fe8f7",
+        "revCount": 106,
         "type": "git",
         "url": "ssh://git@gitlab.com/nmrshll/tools.git"
       },
