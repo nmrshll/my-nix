@@ -116,8 +116,8 @@ with builtins; let
           inherit bin;
           # packages = scripts;
           expose.packages = scripts;
-          devShellParts.buildInputs = (attrValues scripts);
-          devShellParts.shellHookParts.configure-editors = bin.configure-editors;
+          myDevShell.buildInputs = (attrValues scripts);
+          myDevShell.shellHooks.configure-editors = bin.configure-editors;
         };
       };
   };

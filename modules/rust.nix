@@ -14,7 +14,7 @@ with builtins; let
         buildInputs = config.rust.buildInputs ++ [
           customRust
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          # pkgs.apple-sdk_15
+          # pkgs.apple-sdk_26
           # pkgs.libiconv
         ];
         devInputs = with pkgs; [
@@ -25,8 +25,9 @@ with builtins; let
         relPath = p: (/. + builtins.unsafeDiscardStringContext "${self.outPath + "${p}"}");
         commonArgs = {
           inherit src buildInputs;
-          inherit (config.rust) nativeBuildInputs; strictDeps = true;
+          inherit (config.rust) nativeBuildInputs; /* strictDeps = true; */
           env = config.rust.buildEnv;
+          # dontUseCmakeConfigure = true;  # for apple metal ?
         };
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         perCrateArgs = path:
@@ -47,6 +48,7 @@ with builtins; let
             };
             doCheck = false; # we disable tests since we'll run them all via cargo-nextest
             env = config.rust.buildEnv;
+            # dontUseCmakeConfigure = true;  # for apple metal ?
           };
         buildCrate = path: craneLib.buildPackage (perCrateArgs path);
 
@@ -138,10 +140,10 @@ with builtins; let
           expose.packages = scripts // { inherit customRust; };
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
-          devShellParts.buildInputs = buildInputs ++ devInputs ++ (attrValues scripts);
-          devShellParts.env = env;
-          # devShellParts.shellHookParts.de = ''
-          #   comm -13 <(echo "$nativeBuildInputs" | tr ' ' '\n' | sort) <(echo "$PATH" | tr ':' '\n' | sort) | grep "/nix/store" 
+          myDevShell.buildInputs = buildInputs ++ devInputs ++ (attrValues scripts);
+          myDevShell.env = env;
+          # myDevShell.shellHooks.de = ''
+          #   comm -13 <(echo "$nativeBuildInputs" | tr ' ' '\n' | sort) <(echo "$PATH" | tr ':' '\n' | sort) | grep "/nix/store"
           # '';
           extraLib = { inherit craneLib; customRust = { inherit buildCrate; }; };
 

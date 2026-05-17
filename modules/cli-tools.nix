@@ -86,8 +86,8 @@
       {
         inherit bin;
         expose.packages = scripts;
-        devShellParts.buildInputs = attrValues scripts;
-        devShellParts.shellHookParts.dotenv = ''. ${bin.dotenv}'';
+        myDevShell.buildInputs = attrValues scripts;
+        myDevShell.shellHooks.dotenv = ''. ${bin.dotenv}'';
       };
   };
 
