@@ -80,6 +80,7 @@
           nfresh = ''nix flake update . $NIX_OVERRIDES'';
           ndev = ''nix develop . --show-trace $NIX_OVERRIDES'';
           nup = ''set -x; nix flake update --show-trace --refresh --no-eval-cache $NIX_OVERRIDES'';
+          ncheck = ''set -x; nix flake check --show-trace . $NIX_OVERRIDES'';
         };
 
       in
