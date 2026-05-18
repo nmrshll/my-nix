@@ -31,12 +31,22 @@ with builtins; let
         };
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         perCrateArgs = path:
-          let crateToml = fromTOML (readFile (self.outPath + "/${path}/Cargo.toml"));
-          in rec {
+          let
+            crateToml = fromTOML (readFile (self.outPath + "/${path}/Cargo.toml"));
+            rootToml =
+              if pathExists (self.outPath + "/Cargo.toml")
+              then fromTOML (readFile (self.outPath + "/Cargo.toml"))
+              else { };
+            resolvedVersion =
+              if builtins.isAttrs crateToml.package.version && crateToml.package.version ? workspace && crateToml.package.version.workspace == true
+              then rootToml.workspace.package.version or "0.1.0" # Fallback if missing in root
+              else crateToml.package.version;
+          in
+          rec {
             inherit cargoArtifacts buildInputs;
             inherit (config.rust) nativeBuildInputs;
             pname = crateToml.package.name;
-            version = crateToml.package.version;
+            version = resolvedVersion;
             cargoExtraArgs = "-p ${pname}";
             src = lib.fileset.toSource {
               root = (/. + builtins.unsafeDiscardStringContext self.outPath);
