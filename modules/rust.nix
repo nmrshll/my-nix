@@ -5,14 +5,15 @@ with builtins; let
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs); });
 
-        customRust = pkgs.rust-bin.stable.latest.default.override {
+        defaultRust = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
           targets = [ ];
         };
-        craneLib = part.config.flakeInputsOf.my-nix.crane.mkLib pkgs;
+        rustToolchain = config.rust.toolchain or defaultRust;
+        craneLib = (part.config.flakeInputsOf.my-nix.crane.mkLib pkgs).overrideToolchain (p: rustToolchain);
 
         buildInputs = config.rust.buildInputs ++ [
-          customRust
+          rustToolchain
         ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
           # pkgs.apple-sdk_26
           # pkgs.libiconv
@@ -131,7 +132,7 @@ with builtins; let
         # User input options
         options.rust.targets = l.mkOption { type = l.types.listOf l.types.str; default = [ ]; };
         options.rust.extensions = l.mkOption { type = l.types.listOf l.types.str; default = [ ]; };
-        options.rust.toolchain = l.mkOption { type = l.types.package; default = customRust; };
+        options.rust.toolchain = l.mkOption { type = l.types.package; default = defaultRust; };
         options.rust.buildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.nativeBuildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.buildEnv = l.mkOption { type = l.types.attrsOf l.types.str; default = { }; };
@@ -147,7 +148,7 @@ with builtins; let
 
           packages = crates; # expose caller's crates in caller outputs
 
-          expose.packages = scripts // { inherit customRust; };
+          expose.packages = scripts // { customRust = defaultRust; };
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
           myDevShell.buildInputs = buildInputs ++ devInputs ++ (attrValues scripts);
