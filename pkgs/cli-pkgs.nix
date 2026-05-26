@@ -468,4 +468,70 @@
       });
   };
 
+
+  # pkgDefs.hermes = rec {
+  #   version."".sha256 = "";
+  #   mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+  #     let vData = versions.${system}.${version};
+  #     in python311Packages.buildPythonApplication rec {
+  #       pname = "hermes-agent";
+  #       version = "0.1.0"; # Adjust as actual software versions dictate
+
+  #       src = fetchFromGitHub {
+  #         owner = "NousResearch";
+  #         repo = "hermes-agent";
+  #         rev = "main"; # Replace with a specific pinned commit hash or tag
+  #         hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Provide valid sha256 hash
+  #       };
+
+  #       format = "pyproject";
+
+  #       nativeBuildInputs = [
+  #         makeWrapper
+  #         python311Packages.setuptools
+  #         python311Packages.wheel
+  #       ];
+
+  #       # Hard dependencies required by the agent's system tool integrations
+  #       propagatedBuildInputs = [
+  #         nodejs_22
+  #         ripgrep
+  #         ffmpeg
+  #       ];
+
+  #       # Post-install injection guarantees that Hermes' runtime tools will always
+  #       # locate Node, ripgrep, and ffmpeg cleanly without contaminating the global profile.
+  #       postInstall = ''
+  #         wrapProgram $out/bin/hermes \
+  #           --prefix PATH : ${lib.makeBinPath [ nodejs_22 ripgrep ffmpeg ]}
+  #       '';
+
+  #       meta = with lib; {
+  #         description = "An open source AI agent by Nous Research";
+  #         homepage = "https://github.com/NousResearch/hermes-agent";
+  #         license = licenses.mit; # Verify upstream LICENSE metadata
+  #         maintainers = [ ];
+  #         platforms = platforms.unix;
+  #       };
+  #     };
+  # };
+
+  pkgDefs.hermes-agent = rec {
+    versions.aarch64-darwin."v2026.5.16" = { sha256 = "sha256-d9qhrTy45Q5UsmjapqMHOVi9e+gR9zE8Nq9Z0wObLmc="; narHash = l.fakeHash; };
+    mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version};
+        hermes-src = pkgs.fetchFromGitHub {
+          owner = "NousResearch";
+          repo = "hermes-agent";
+          rev = version;
+          sha256 = vData.sha256;
+        };
+        hermes-flake = (builtins.getFlake "${unsafeDiscardStringContext hermes-src.outPath}");
+        hermes-pkgs = hermes-flake.packages.${system}; # available: default, configKeys, fix-lockfiles, tui, web
+        hermes-agent = hermes-pkgs.default or (throw "Package not found for ${system}");
+      in
+      hermes-agent;
+  };
+
 }
