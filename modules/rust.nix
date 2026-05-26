@@ -3,7 +3,7 @@ with builtins; let
   flakeModules.rust = part@{ self, config, pkgs, inputs, ... }: {
     perSystem = { pkgs, config, l, lib, ... }:
       with builtins; let
-        bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs); });
+        bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { /* inherit (pkgs); */ });
 
         defaultRust = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "rust-analyzer" ];
