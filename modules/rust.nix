@@ -87,24 +87,23 @@ with builtins; let
           });
         };
 
-
         wd = "$(git rev-parse --show-toplevel)";
-        scripts = lib.mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
+        scripts = mapAttrs pkgs.writeShellScriptBin {
           fix-fmt = ''
             cargo fmt --all --
             cargo clippy --fix
           '';
-          check = ''
+          rcheck = ''
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
           '';
 
           rfmt = ''set -x
-        	if [ -f "${wd}/rustfmt.toml" ];
-        		then rustfmt --config-file="${wd}/rustfmt.toml" "$@"
-        		else rustfmt "$@"
-        	fi
-        '';
+           	if [ -f "${wd}/rustfmt.toml" ];
+            		then rustfmt --config-file="${wd}/rustfmt.toml" "$@"
+            		else rustfmt "$@"
+           	fi
+          '';
           cargo-newbin = ''if [ "$1" = "newbin" ]; then shift; fi; cargo new --bin "$1" --vcs none'';
           cargo-newlib = ''if [ "$1" = "newlib" ]; then shift; fi; cargo new --lib "$1" --vcs none'';
           # cwadd = ''${pkgs.own.tools.cargo-wadd}/bin/cargo-wadd $@'';
@@ -116,8 +115,9 @@ with builtins; let
           prun = ''cargo run -p "''${@:-$CURRENT_CRATE}" '';
           pbuild = ''cargo build -p "''${@:-$CURRENT_CRATE}" '';
           # utest = ''cargo nextest run --workspace --nocapture -- $SINGLE_TEST '';
-          utest = ''set -x; cargo nextest run $(packages) --nocapture "$@" -- $SINGLE_TEST '';
-          packages = ''if [ -n "$CURRENT_CRATE" ]; then echo "-p $CURRENT_CRATE"; else echo "--workspace"; fi '';
+          utest = ''set -x; cargo nextest run $(package_args) $(test_filter_args) --nocapture "$@" -- $SINGLE_TEST '';
+          test_filter_args = '' [[ -n "$TEST_FILTER" ]] && printf "%s" "--filter-expr $TEST_FILTER" '';
+          package_args = ''if [ -n "$CURRENT_CRATE" ]; then echo "-p $CURRENT_CRATE"; else echo "--workspace"; fi '';
           ptest = ''package="$1"; shift; cargo nextest run -p "$package" --nocapture "$@" -- "$SINGLE_TEST" '';
           # penv = ''printf "%s\n" "${toJSON config.devShells.default.shellHook}" '';
           de = ''printf "%s\n" "${pkgs.pkg-config}" '';
