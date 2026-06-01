@@ -517,7 +517,7 @@
   # };
 
   pkgDefs.hermes-agent = rec {
-    versions.aarch64-darwin."v2026.5.16" = { sha256 = "sha256-d9qhrTy45Q5UsmjapqMHOVi9e+gR9zE8Nq9Z0wObLmc="; narHash = l.fakeHash; };
+    versions.aarch64-darwin."v2026.5.16" = { sha256 = "sha256-d9qhrTy45Q5UsmjapqMHOVi9e+gR9zE8Nq9Z0wObLmc="; };
     mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         vData = versions.${system}.${version};
@@ -533,5 +533,89 @@
       in
       hermes-agent;
   };
+
+
+  pkgDefs.oh-my-pi = rec{
+    versions.aarch64-darwin."v15.7.3".sha256 = "052vncf0iy55b5hyfa7axf6xqx6aqafv82xab9m4hh2p6bjrsg12";
+    mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version};
+
+        # Binary installation method
+        binaryPackage = pkgs.stdenv.mkDerivation rec {
+          pname = "omp-binary";
+          inherit version;
+          platform =
+            if pkgs.stdenv.hostPlatform.isLinux then "linux"
+            else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
+            else throw "Unsupported platform";
+          arch =
+            if pkgs.stdenv.hostPlatform.isx86_64 then "x64"
+            else if pkgs.stdenv.hostPlatform.isAarch64 then "arm64"
+            else throw "Unsupported architecture";
+          binaryName = "omp-${platform}-${arch}";
+          src = fetchurl {
+            url = "https://github.com/can1357/oh-my-pi/releases/download/${version}/${binaryName}";
+            sha256 = vData.sha256;
+          };
+
+          dontUnpack = true;
+          installPhase = ''
+            mkdir -p $out/bin
+            cp $src $out/bin/omp
+            chmod +x $out/bin/omp
+          '';
+          meta = {
+            description = "OMP Coding Agent (prebuilt binary)";
+            homepage = "https://github.com/can1357/oh-my-pi";
+            platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+          };
+        };
+
+        # Source installation method (requires Bun)
+        # sourcePackage = stdenv.mkDerivation rec {
+        #   pname = "omp-source";
+        #   inherit version; # Specify actual version or commit hash
+        #   src = pkgs.fetchFromGitHub {
+        #     owner = "can1357";
+        #     repo = "oh-my-pi";
+        #     rev = "main"; # or specific commit hash
+        #     hash = vData.sha256;
+        #   };
+
+        #   nativeBuildInputs = [ bun git git-lfs makeWrapper ];
+
+        #   buildPhase = ''
+        #     # Pull LFS files if needed
+        #     git lfs pull
+
+        #     # Install the coding-agent package globally using bun
+        #     bun install
+        #     cd packages/coding-agent
+        #     bun install
+        #   '';
+
+        #   installPhase = ''
+        #     mkdir -p $out/bin
+
+        #     # Create wrapper script that runs the bun module
+        #     makeWrapper ${bun}/bin/bun $out/bin/omp \
+        #       --add-flags "run $src/packages/coding-agent/index.js" \
+        #       --set-default BUN_INSTALL "$HOME/.bun"
+        #   '';
+
+        #   meta = with lib; {
+        #     description = "OMP Coding Agent (installed from source via Bun)";
+        #     homepage = "https://github.com/can1357/oh-my-pi";
+        #     platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+        #   };
+        # };
+
+      in
+      # Choose default method (binary is simpler with no runtime dependencies)
+      binaryPackage;
+  };
+
+
 
 }
