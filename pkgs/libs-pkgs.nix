@@ -48,9 +48,9 @@ with builtins; rec {
         fi
         sudo xcode-select -s "${DEV_DIR}"
 
-        if ! xcodebuild -checkFirstLaunchStatus > /dev/null 2>&1; then
+        if ! /usr/bin/xcodebuild -checkFirstLaunchStatus > /dev/null 2>&1; then
           yes agree | sudo xcodebuild -license accept
-          xcodebuild -runFirstLaunch
+          /usr/bin/xcodebuild -runFirstLaunch
         else
           echo "XCode already initialized."
         fi
@@ -69,6 +69,7 @@ with builtins; rec {
         target_path = "/Applications/Xcode.app";
         DEV_DIR = "${target_path}/Contents/Developer";
         SDKROOT = "${DEV_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
+        xcodebuild = "/usr/bin/xcodebuild";
       in
       (pkgs.writeShellScriptBin "install-xcode-global" ''set -x
         # 1. Ensure the Xcode bundle exists in the Nix Store
@@ -77,7 +78,7 @@ with builtins; rec {
         fi
 
         # 2. Copy to /Applications
-        if [ "$(xcodebuild -version 2>&1)" != "$(DEVELOPER_DIR="${DEV_DIR}" xcodebuild -version 2>&1)" ]; then
+        if [ "$(${xcodebuild} -version 2>&1)" != "$(DEVELOPER_DIR="${DEV_DIR}" ${xcodebuild} -version 2>&1)" ]; then
           sudo rm -rf "${target_path}"
           sudo rsync -rlptD --delete --stats "${store_path}/" "${target_path}/"
         fi
@@ -87,9 +88,9 @@ with builtins; rec {
           sudo xcode-select -s "${DEV_DIR}"
         fi
 
-        if ! xcodebuild -checkFirstLaunchStatus > /dev/null 2>&1; then
-          yes agree | sudo xcodebuild -license accept
-          xcodebuild -runFirstLaunch
+        if ! ${xcodebuild} -checkFirstLaunchStatus > /dev/null 2>&1; then
+          yes agree | sudo ${xcodebuild} -license accept
+          ${xcodebuild} -runFirstLaunch
         else
           echo "XCode already initialized."
         fi
