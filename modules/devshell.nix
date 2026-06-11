@@ -1,7 +1,7 @@
 with builtins; let
 
-  flakeModules.devShell = { lib, pkgs, options, l, ... }: {
-    perSystem = { lib, pkgs, config, options, ... }: {
+  flakeModules.devShell = { ... }: {
+    perSystem = { lib, pkgs, config, ... }: {
       options = {
         myDevShell = {
           buildInputs = lib.mkOption {
@@ -20,15 +20,15 @@ with builtins; let
             description = "Environment variables to set in the dev shell.";
           };
           overrides = lib.mkOption {
-            type = lib.types.lazyAttrsOf (lib.types.oneOf [ lib.types.str lib.types.int ]);
-            default = { };
+            type = lib.types.lazyAttrsOf (lib.types.anything);
+            default = { stdenv = pkgs.stdenvNoCC; };
             description = "Overrides for the dev shell environment.";
           };
         };
       };
 
 
-      config.devShells.default = lib.mkDefault (pkgs.mkShell.override { stdenv = pkgs.stdenvNoCC; } {
+      config.devShells.default = (pkgs.mkShell.override config.myDevShell.overrides {
         env = config.myDevShell.env;
         buildInputs = config.myDevShell.buildInputs;
         shellHook = lib.concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
