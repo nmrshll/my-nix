@@ -617,5 +617,46 @@
   };
 
 
+  pkgDefs.mimo-code = rec {
+    versions = {
+      aarch64-darwin."0.1.0".sha256 = "sha256-BO9FQS03ZR0pSYNKPubX/GnFp5BTkC0mc2qQ75mTavs=";
+    };
+    mkPkg = { pkgs, l, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, avx2 ? false, ... }:
+      let
+        vData = versions.${system}.${version} or (throw "Unsupported system/version: ${system} / ${version}");
+        os =
+          if pkgs.stdenv.hostPlatform.isLinux then "linux"
+          else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
+          else if pkgs.stdenv.hostPlatform.isWindows then "windows"
+          else throw "Unsupported OS: ${pkgs.stdenv.hostPlatform.system}";
+        arch = { x86_64 = "x64"; aarch64 = "arm64"; }.${pkgs.stdenv.hostPlatform.parsed.cpu.name}
+          or (throw "Unsupported architecture: ${pkgs.stdenv.hostPlatform.parsed.cpu.name}");
+        baselineSuffix = if arch == "x86_64" && !avx2 then "-baseline" else "";
+        muslSuffix = if pkgs.stdenv.hostPlatform.isMusl then "-musl" else "";
+        target = "${os}-${arch}${baselineSuffix}${muslSuffix}";
+        extension = if pkgs.stdenv.hostPlatform.isLinux then "tar.gz" else "zip";
+      in
+      pkgs.stdenv.mkDerivation {
+        pname = "mimocode";
+        inherit version;
+        src = pkgs.fetchzip {
+          url = "https://github.com/XiaomiMiMo/MiMo-Code/releases/download/v${version}/mimocode-${target}.${extension}";
+          sha256 = vData.sha256;
+          stripRoot = false;
+        };
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/bin
+          install -Dm755 $src/mimo $out/bin/mimo
+          runHook postInstall
+        '';
+        meta = {
+          description = "MiMo Code – CLI tool from Xiaomi's coding assistant";
+          homepage = "https://mimo.xiaomi.com/coder/docs";
+          platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+          mainProgram = "mimo";
+        };
+      };
+  };
 
 }
