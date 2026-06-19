@@ -121,6 +121,8 @@ with builtins; let
           ptest = ''package="$1"; shift; cargo nextest run -p "$package" --nocapture "$@" -- "$SINGLE_TEST" '';
           # penv = ''printf "%s\n" "${toJSON config.devShells.default.shellHook}" '';
           de = ''printf "%s\n" "${pkgs.pkg-config}" '';
+
+          pcheck = ''cargo check -p "''${@:-$CURRENT_CRATE}" '';
         };
 
         env = {
