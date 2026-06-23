@@ -97,6 +97,7 @@ with builtins; let
             cargo fmt --all -- --check
             cargo clippy -- -D warnings
           '';
+          rfix = ''cargo clippy --workspace && cargo fmt --all'';
 
           rfmt = ''set -x
            	if [ -f "${wd}/rustfmt.toml" ];
