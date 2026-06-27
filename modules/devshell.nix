@@ -15,7 +15,7 @@ with builtins; let
             description = "Named lines to add to the shell hook script.";
           };
           env = lib.mkOption {
-            type = lib.types.lazyAttrsOf (lib.types.oneOf [ lib.types.str lib.types.int ]);
+            type = lib.types.lazyAttrsOf (lib.types.oneOf [ lib.types.str lib.types.int lib.types.bool ]);
             default = { };
             description = "Environment variables to set in the dev shell.";
           };
@@ -29,7 +29,8 @@ with builtins; let
 
 
       config.devShells.default = (pkgs.mkShell.override config.myDevShell.overrides {
-        env = config.myDevShell.env;
+        # env = config.myDevShell.env;
+        env = lib.mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else v) config.myDevShell.env;
         buildInputs = config.myDevShell.buildInputs;
         shellHook = lib.concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
       });

@@ -138,7 +138,7 @@ with builtins; let
         options.rust.toolchain = l.mkOption { type = l.types.package; default = defaultRust; };
         options.rust.buildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.nativeBuildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
-        options.rust.buildEnv = l.mkOption { type = l.types.attrsOf l.types.str; default = { }; };
+        options.rust.buildEnv = l.mkOption { type = l.types.attrsOf (lib.types.oneOf [ lib.types.str lib.types.int lib.types.bool ]); default = { }; };
         # Internal options
         options.rust.crates = l.mkOption { type = l.types.nestedAttrs l.types.package; default = { }; readOnly = true; };
 
