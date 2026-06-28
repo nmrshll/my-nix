@@ -536,6 +536,7 @@
 
 
   pkgDefs.oh-my-pi = rec{
+    versions.aarch64-darwin."v16.2.2".sha256 = "sha256:1qjzp0qz0q1pyvqw6glya8phllamw9dq58b2gj1y8wrs5a04bsag";
     versions.aarch64-darwin."v15.7.3".sha256 = "052vncf0iy55b5hyfa7axf6xqx6aqafv82xab9m4hh2p6bjrsg12";
     mkPkg = { pkgs, version ? (l.latest versions.${system}), system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
@@ -619,6 +620,7 @@
 
   pkgDefs.mimo-code = rec {
     versions = {
+      aarch64-darwin."0.1.3".sha256 = "sha256-dmoXFbZo0YAcVOgMA0OhYxLSe1p/sHSeXIdjxzafIN0=";
       aarch64-darwin."0.1.0".sha256 = "sha256-BO9FQS03ZR0pSYNKPubX/GnFp5BTkC0mc2qQ75mTavs=";
     };
     mkPkg = { pkgs, l, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, avx2 ? false, ... }:
