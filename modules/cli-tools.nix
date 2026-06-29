@@ -81,6 +81,7 @@
           ndev = ''nix develop . --show-trace $NIX_OVERRIDES'';
           nup = ''set -x; nix flake update --show-trace --refresh --no-eval-cache $NIX_OVERRIDES'';
           ncheck = ''set -x; nix flake check --impure --show-trace . $NIX_OVERRIDES'';
+          nclean = ''rm -rf result/ '';
         };
 
       in
