@@ -34,6 +34,47 @@ with builtins; let
           };
 
           ownPkgs = {
+            spl-token4 =
+              let
+                sw_vers = pkgs.writeShellScriptBin "sw_vers" ''
+                  echo "15.0"
+                '';
+              in
+              pkgs.rustPlatform.buildRustPackage {
+                pname = "spl-token4";
+                version = "5.6.1";
+                src = pkgs.fetchFromGitHub {
+                  owner = "solana-program";
+                  repo = "token-2022";
+                  rev = "cli@v5.6.1";
+                  hash = "sha256-7gOP19SESZMnfLPZfOP588TUstc01SRedn7uO7zrd4U=";
+                };
+                cargoHash = "sha256-kbpIyV4GFhebrZzVodnAxiJhgHnwb06JzGcRZCjchq0=";
+                strictDeps = true;
+                doCheck = false;
+                nativeBuildInputs = [
+                  sw_vers
+                  pkgs.protobuf
+                  pkgs.pkg-config
+                ];
+                buildInputs = [
+                  pkgs.openssl
+                  pkgs.libusb1
+                  pkgs.rustPlatform.bindgenHook
+                  pkgs.clang
+                  pkgs.libclang
+                ] ++ lib.optionals stdenv.isDarwin [
+                  pkgs.apple-sdk
+                  pkgs.libiconv
+                ];
+                LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+                PROTOC = "${pkgs.protobuf}/bin/protoc";
+                LIBUSB_NO_VENDOR = 1;
+                OPENSSL_NO_VENDOR = 1;
+                CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
+                LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
+              };
+
             # spl-token-3 =
             #   let
             #     sw_vers = pkgs.writeShellScriptBin "sw_vers" ''
@@ -600,7 +641,7 @@ with builtins; let
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
           packages = {
-            inherit (ownPkgs) spl-token-3 spl-token2;
+            inherit (ownPkgs) spl-token-3 spl-token2 spl-token4;
             solana-platform-tools = callPackage ownPkgs.solana-platform-tools { };
             solana-cli = callPackage ownPkgs.solana-cli { };
             anchor-cli = callPackage ownPkgs.anchor-cli { };
@@ -610,7 +651,7 @@ with builtins; let
 
           myDevShell.env = env;
           myDevShell.buildInputs = buildInputs ++ [
-            # ownPkgs.spl-token2
+            ownPkgs.spl-token4
             # (callPackage ownPkgs.solana-cli { })
             (callPackage ownPkgs.cli2 { })
             (callPackage ownPkgs.anchor-cli { })
