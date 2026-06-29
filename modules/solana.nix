@@ -267,7 +267,7 @@ with builtins; let
                   ]
                   ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
                   ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
-                  NIX_OUTPATH_USED_AS_RANDOM_SEED = "aaaaaaaaaa";
+                  # NIX_OUTPATH_USED_AS_RANDOM_SEED = "aaaaaaaaaa";
                   PROTOC = "${pkgs.protobuf}/bin/protoc";
                   CXX = "clang++";
                   CXXFLAGS = "-std=c++11";
@@ -312,43 +312,46 @@ with builtins; let
                 '';
               });
 
-            # solana-cli = { version ? "2.2.3" }:
-            #   let
-            #     src = srcs.agave { inherit version; };
-            #     solanaPkgs = [ "agave-install" "agave-install-init" "agave-ledger-tool" "agave-validator" "agave-watchtower" "cargo-test-sbf" "rbpf-cli" "solana" "solana-bench-tps" "solana-faucet" "solana-gossip" "solana-keygen" "solana-log-analyzer" "solana-net-shaper" "solana-dos" "solana-stake-accounts" "solana-test-validator" "solana-tokens" "solana-genesis" ];
-            #     commonArgs = {
-            #       pname = "solana-cli";
-            #       inherit src version;
-            #       strictDeps = true;
-            #       cargoExtraArgs = lib.concatMapStringsSep " " (n: "--bin=${n}") solanaPkgs;
-            #       doCheck = false;
-            #       nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.clang ];
-            #       buildInputs = [
-            #         pkgs.openssl
-            #         pkgs.rustPlatform.bindgenHook
-            #         pkgs.makeWrapper
-            #       ]
-            #       ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-            #       ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
-            #       NIX_OUTPATH_USED_AS_RANDOM_SEED = "aaaaaaaaaa";
-            #       PROTOC = "${pkgs.protobuf}/bin/protoc";
-            #       CXX = "clang++";
-            #       CXXFLAGS = "-std=c++11";
-            #       ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
-            #       ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
-            #       CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
-            #       LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
-            #       OPENSSL_NO_VENDOR = 1;
-            #     };
-            #     cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = src; });
-            #   in
-            #   craneLib.buildPackage (commonArgs // {
-            #     inherit cargoArtifacts;
-            #     postInstall = ''
-            #       mkdir -p $out/bin/platform-tools-sdk/sbf
-            #       cp -a ./platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
-            #     '';
-            #   });
+            solana-cli = { version ? "2.2.3" }:
+              let
+                src = srcs.agave { inherit version; };
+                solanaPkgs = [ "agave-install" "agave-install-init" "agave-ledger-tool" "agave-validator" "agave-watchtower" "cargo-test-sbf" "rbpf-cli" "solana" "solana-bench-tps" "solana-faucet" "solana-gossip" "solana-keygen" "solana-log-analyzer" "solana-net-shaper" "solana-dos" "solana-stake-accounts" "solana-test-validator" "solana-tokens" "solana-genesis" ];
+                commonArgs = {
+                  pname = "solana-cli";
+                  inherit src version;
+                  strictDeps = true;
+                  cargoExtraArgs = lib.concatMapStringsSep " " (n: "--bin=${n}") solanaPkgs;
+                  doCheck = false;
+                  nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.clang ];
+                  buildInputs = [
+                    pkgs.openssl
+                    pkgs.rustPlatform.bindgenHook
+                    pkgs.makeWrapper
+                  ]
+                  ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
+                  ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
+                  PROTOC = "${pkgs.protobuf}/bin/protoc";
+                  CXXFLAGS = "-std=c++11";
+                  OPENSSL_NO_VENDOR = 1;
+                  ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
+                  ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
+
+                  # PROTOC = "${pkgs.protobuf}/bin/protoc";
+                  LIBUSB_NO_VENDOR = 1;
+                  CC = "${pkgs.llvmPackages.clang}/bin/clang";
+                  CXX = "${pkgs.llvmPackages.clang}/bin/clang++";
+                  # CXXFLAGS = "-std=c++11";
+                  NIX_CFLAGS_COMPILE = "-isystem ${pkgs.llvmPackages.libcxx.dev}/include/c++/v1";
+                };
+                cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = src; });
+              in
+              craneLib.buildPackage (commonArgs // {
+                inherit cargoArtifacts;
+                postInstall = ''
+                  mkdir -p $out/bin/platform-tools-sdk/sbf
+                  cp -a ./platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
+                '';
+              });
 
             anchor-cli = { version ? "0.31.1" }:
               let
@@ -409,6 +412,159 @@ with builtins; let
                 cargoExtraArgs = "-p ${pname}";
                 meta = { mainProgram = "anchor"; description = "Anchor cli"; };
               });
+
+
+            cli2 =
+              { stdenv
+              , fetchFromGitHub
+              , fetchurl
+              , lib
+              , rustPlatform
+              , udev
+              , protobuf
+              , installShellFiles
+              , pkg-config
+              , openssl
+              , nix-update-script
+              , versionCheckHook
+              , clang
+              , libclang
+              , rocksdb
+              , # Taken from https://github.com/solana-labs/solana/blob/master/scripts/cargo-install-all.sh#L84
+                solanaPkgs ? [
+                  "cargo-build-sbf"
+                  "cargo-test-sbf"
+                  "solana"
+                  "solana-bench-tps"
+                  "solana-faucet"
+                  "solana-gossip"
+                  "agave-install"
+                  "solana-keygen"
+                  "agave-ledger-tool"
+                  "solana-net-shaper"
+                  "agave-validator"
+                  "solana-test-validator"
+                ]
+                ++ [
+                  # XXX: Ensure `solana-genesis` is built LAST!
+                  # See https://github.com/solana-labs/solana/issues/5826
+                  "solana-genesis"
+                ]
+              ,
+              }:
+              let
+                version = "3.0.12";
+                hash = "sha256-Zubu7cTSJrJFSuguCo3msdas/QshFpo1+T6DVQyqrhY=";
+
+                # Platform tools configuration
+                platformToolsVersion = "v1.52";
+                platformToolsSrc =
+                  if stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64 then
+                    fetchurl
+                      {
+                        url = "https://github.com/anza-xyz/platform-tools/releases/download/${platformToolsVersion}/platform-tools-osx-aarch64.tar.bz2";
+                        sha256 = "sha256-Fyffsx6DPOd30B5wy0s869JrN2vwnYBSfwJFfUz2/QA="; # Run: nix-prefetch-url --type sha256 <url>
+                      }
+                  else if stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64 then
+                    fetchurl
+                      {
+                        url = "https://github.com/anza-xyz/platform-tools/releases/download/${platformToolsVersion}/platform-tools-linux-x86_64.tar.bz2";
+                        sha256 = "sha256-izhh6T2vCF7BK2XE+sN02b7EWHo94Whx2msIqwwdkH4"; # Run: nix-prefetch-url --type sha256 <url>
+                      }
+                  else null;
+              in
+              rustPlatform.buildRustPackage rec {
+                pname = "solana-cli";
+                inherit version;
+
+                src = fetchFromGitHub {
+                  owner = "anza-xyz";
+                  repo = "agave";
+                  tag = "v${version}";
+                  inherit hash;
+                };
+
+                cargoHash = "sha256-qnZbFkyzE2hdy/ynZQZmCs5kCeTUMci9f/pVKID/mRQ=";
+
+                strictDeps = true;
+                cargoBuildFlags = map (n: "--bin=${n}") solanaPkgs;
+                RUSTFLAGS = "-Amismatched_lifetime_syntaxes -Adead_code -Aunused-parens";
+                LIBCLANG_PATH = "${libclang.lib}/lib";
+
+                # Even tho the tests work, a shit ton of them try to connect to a local RPC
+                # or access internet in other ways, eventually failing due to Nix sandbox.
+                # Maybe we could restrict the check to the tests that don't require an RPC,
+                # but judging by the quantity of tests, that seems like a lengthty work and
+                # I'm not in the mood ((ΦωΦ))
+                doCheck = false;
+
+                nativeBuildInputs = [
+                  installShellFiles
+                  protobuf
+                  pkg-config
+                ];
+                buildInputs = [
+                  openssl
+                  clang
+                  libclang
+                  rustPlatform.bindgenHook
+                ]
+                ++ lib.optionals stdenv.hostPlatform.isLinux [ udev ];
+
+                doInstallCheck = true;
+
+                nativeInstallCheckInputs = [ versionCheckHook ];
+                versionCheckProgram = "${placeholder "out"}/bin/solana";
+                versionCheckProgramArg = "--version";
+
+                postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+                  installShellCompletion --cmd solana \
+                    --bash <($out/bin/solana completion --shell bash) \
+                    --fish <($out/bin/solana completion --shell fish)
+
+                  mkdir -p $out/bin/platform-tools-sdk
+                  cp -r ./platform-tools-sdk/sbf $out/bin/platform-tools-sdk
+
+                  mkdir -p $out/bin/deps
+                  find . -name libsolana_program.dylib -exec cp {} $out/bin/deps \;
+                  find . -name libsolana_program.rlib -exec cp {} $out/bin/deps \;
+                '' + lib.optionalString (platformToolsSrc != null) ''
+                  # Unpack platform-tools into sbf directory
+                  mkdir -p $out/bin/platform-tools-sdk/sbf/dependencies
+                  mkdir -p $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
+                  tar -xjf ${platformToolsSrc} -C $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools --strip-components=1
+
+                  # Remove broken symlinks
+                  find $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools -type l ! -exec test -e {} \; -delete
+                '';
+
+                # Used by build.rs in the rocksdb-sys crate. If we don't set these, it would
+                # try to build RocksDB from source.
+                ROCKSDB_LIB_DIR = "${rocksdb}/lib";
+
+                # Require this on darwin otherwise the compiler starts rambling about missing
+                # cmath functions
+                CPPFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
+                LDFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
+
+                # If set, always finds OpenSSL in the system, even if the vendored feature is enabled.
+                OPENSSL_NO_VENDOR = 1;
+
+                meta = with lib; {
+                  description = "Web-Scale Blockchain for fast, secure, scalable, decentralized apps and marketplaces";
+                  homepage = "https://solana.com";
+                  license = licenses.asl20;
+                  maintainers = with maintainers; [
+                    netfox
+                    happysalada
+                    aikooo7
+                    JacoMalan1
+                  ];
+                  platforms = platforms.unix;
+                };
+
+                passthru.updateScript = nix-update-script { };
+              };
           };
 
           buildInputs = [
@@ -454,8 +610,9 @@ with builtins; let
 
           myDevShell.env = env;
           myDevShell.buildInputs = buildInputs ++ [
-            ownPkgs.spl-token2
+            # ownPkgs.spl-token2
             # (callPackage ownPkgs.solana-cli { })
+            (callPackage ownPkgs.cli2 { })
             (callPackage ownPkgs.anchor-cli { })
             (callPackage ownPkgs.cargo-build-sbf { })
           ] ++ (attrValues scripts);
