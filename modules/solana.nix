@@ -34,202 +34,43 @@ with builtins; let
           };
 
           ownPkgs = {
-            spl-token4 =
+            spl-token =
               let
-                sw_vers = pkgs.writeShellScriptBin "sw_vers" ''
-                  echo "15.0"
-                '';
+                versions."5.6.1" = { sha256 = "sha256-7gOP19SESZMnfLPZfOP588TUstc01SRedn7uO7zrd4U="; cargoHash = "sha256-kbpIyV4GFhebrZzVodnAxiJhgHnwb06JzGcRZCjchq0="; };
+                mkPkg = { version ? "5.6.1" }:
+                  let v = versions.${version};
+                  in pkgs.rustPlatform.buildRustPackage {
+                    pname = "spl-token4";
+                    inherit version;
+                    src = pkgs.fetchFromGitHub { owner = "solana-program"; repo = "token-2022"; rev = "cli@v${version}"; sha256 = v.sha256; };
+                    cargoHash = v.cargoHash;
+                    strictDeps = true;
+                    doCheck = false;
+                    nativeBuildInputs = [
+                      (pkgs.writeShellScriptBin "sw_vers" '' echo "15.0" '')
+                      pkgs.protobuf
+                      pkgs.pkg-config
+                      pkgs.clang
+                    ];
+                    buildInputs = [
+                      pkgs.openssl
+                      pkgs.libusb1
+                      pkgs.rustPlatform.bindgenHook
+                      pkgs.libclang
+                    ];
+                    env = {
+                      LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+                      PROTOC = "${pkgs.protobuf}/bin/protoc";
+                      LIBUSB_NO_VENDOR = 1;
+                      OPENSSL_NO_VENDOR = 1;
+                      CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
+                      LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
+                    };
+                    passthru = { inherit versions mkPkg; };
+                  };
               in
-              pkgs.rustPlatform.buildRustPackage {
-                pname = "spl-token4";
-                version = "5.6.1";
-                src = pkgs.fetchFromGitHub {
-                  owner = "solana-program";
-                  repo = "token-2022";
-                  rev = "cli@v5.6.1";
-                  hash = "sha256-7gOP19SESZMnfLPZfOP588TUstc01SRedn7uO7zrd4U=";
-                };
-                cargoHash = "sha256-kbpIyV4GFhebrZzVodnAxiJhgHnwb06JzGcRZCjchq0=";
-                strictDeps = true;
-                doCheck = false;
-                nativeBuildInputs = [
-                  sw_vers
-                  pkgs.protobuf
-                  pkgs.pkg-config
-                ];
-                buildInputs = [
-                  pkgs.openssl
-                  pkgs.libusb1
-                  pkgs.rustPlatform.bindgenHook
-                  pkgs.clang
-                  pkgs.libclang
-                ] ++ lib.optionals stdenv.isDarwin [
-                  pkgs.apple-sdk
-                  pkgs.libiconv
-                ];
-                LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-                PROTOC = "${pkgs.protobuf}/bin/protoc";
-                LIBUSB_NO_VENDOR = 1;
-                OPENSSL_NO_VENDOR = 1;
-                CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
-                LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
-              };
+              mkPkg { };
 
-            # spl-token-3 =
-            #   let
-            #     sw_vers = pkgs.writeShellScriptBin "sw_vers" ''
-            #       echo "15.0"
-            #     '';
-            #     src = pkgs.fetchFromGitHub {
-            #       owner = "solana-program";
-            #       repo = "token-2022";
-            #       rev = "cli@v5.6.1";
-            #       hash = "sha256-7gOP19SESZMnfLPZfOP588TUstc01SRedn7uO7zrd4U=";
-            #     };
-            #     commonArgs = {
-            #       pname = "spl-token-3";
-            #       version = "5.6.1";
-            #       inherit src;
-            #       strictDeps = true;
-            #       doCheck = false;
-            #       nativeBuildInputs = [ sw_vers pkgs.pkg-config pkgs.protobuf pkgs.clang ];
-            #       buildInputs = [
-            #         pkgs.openssl
-            #         pkgs.libusb1
-            #         pkgs.rustPlatform.bindgenHook
-            #       ] ++ lib.optionals stdenv.isDarwin [
-            #         pkgs.apple-sdk
-            #         pkgs.libiconv
-            #       ];
-            #       PROTOC = "${pkgs.protobuf}/bin/protoc";
-            #       LIBUSB_NO_VENDOR = 1;
-            #       CC = "${pkgs.llvmPackages.clang}/bin/clang";
-            #       CXX = "${pkgs.llvmPackages.clang}/bin/clang++";
-            #       CXXFLAGS = "-std=c++11";
-            #       NIX_CFLAGS_COMPILE = "-isystem ${pkgs.llvmPackages.libcxx.dev}/include/c++/v1";
-            #     };
-            #     cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = src; });
-            #   in
-            #   craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
-
-            spl-token2 =
-              let
-                sw_vers = pkgs.writeShellScriptBin "sw_vers" ''
-                  echo "15.0"
-                '';
-                src = pkgs.fetchFromGitHub {
-                  owner = "solana-program";
-                  repo = "token-2022";
-                  rev = "cli@v5.6.1";
-                  hash = "sha256-7gOP19SESZMnfLPZfOP588TUstc01SRedn7uO7zrd4U=";
-                };
-                patchedSrc = pkgs.runCommand "token-2022-patched" { } ''
-                  cp -r ${src} $out
-                  chmod -R u+w $out
-
-                  # Create stub protobuf-src crate
-                  mkdir -p $out/nix-shim/protobuf-src-stub/src
-                  cat > $out/nix-shim/protobuf-src-stub/Cargo.toml <<'CARGO'
-                  [package]
-                  name = "protobuf-src"
-                  version = "1.1.0"
-                  edition = "2021"
-                  links = "protobuf-src"
-                  CARGO
-                  cat > $out/nix-shim/protobuf-src-stub/build.rs <<'BUILD'
-                  use std::env;
-                  use std::error::Error;
-                  use std::path::PathBuf;
-                  fn main() -> Result<(), Box<dyn Error>> {
-                      let protoc = env::var("PROTOC").expect("PROTOC not set");
-                      let prefix = protoc.trim_end_matches("/bin/protoc");
-                      let install_dir = PathBuf::from(prefix);
-                      println!("cargo:rustc-env=INSTALL_DIR={}", install_dir.display());
-                      println!("cargo:CXXBRIDGE_DIR0={}/include", install_dir.display());
-                      Ok(())
-                  }
-                  BUILD
-                  cat > $out/nix-shim/protobuf-src-stub/src/lib.rs <<'RUST'
-                  RUST
-
-                  # Remove registry source for protobuf-src (patch.crates-io replaces it with local stub)
-                  sed -i '/name = "protobuf-src"/,/^\[/{
-                    s/source = "registry+https:\/\/github.com\/rust-lang\/crates.io-index"//
-                    s/checksum = "[^"]*"//
-                  }' "$out/Cargo.lock"
-
-                  # Override protobuf-src with local stub
-                  cat >> $out/Cargo.toml <<'PATCH'
-
-                  [patch.crates-io]
-                  protobuf-src = { path = "nix-shim/protobuf-src-stub" }
-                  PATCH
-                '';
-              in
-              pkgs.rustPlatform.buildRustPackage {
-                pname = "spl-token2";
-                version = "5.6.1";
-                src = patchedSrc;
-                cargoHash = "sha256-usp5e75iYIGEleExGXIdNeVjcBDWP6GbN2OKYHGW+Rc=";
-                nativeBuildInputs = [
-                  sw_vers
-                  pkgs.pkg-config
-                  pkgs.protobuf
-                  pkgs.cmake
-                ];
-                buildInputs = [
-                  pkgs.openssl
-                  pkgs.libusb1
-                  pkgs.rustPlatform.bindgenHook
-                ] ++ lib.optionals pkgs.stdenv.isDarwin [
-                  pkgs.apple-sdk
-                  pkgs.libiconv
-                ];
-                PROTOC = "${pkgs.protobuf}/bin/protoc";
-                LIBUSB_NO_VENDOR = 1;
-                doCheck = false;
-              };
-
-            # spl-token = { version ? "5.1.0" }:
-            #   let
-            #     pname = "spl-token";
-            #     srcHash = "sha256-XqQgTbiiLKHSTInxdRh1SYgtwxcyr9Q9XJPx9+tDRwc=";
-            #     cargoHash = "sha256-e07bJvN0+Hhd8qzhr91Ft8JjzIdkxNNkaRofj01oM2c=";
-            #   in
-            #   pkgs.rustPlatform.buildRustPackage {
-            #     src = pkgs.fetchFromGitHub {
-            #       owner = "solana-program";
-            #       repo = "token-2022";
-            #       rev = "cli@v${version}";
-            #       hash = srcHash;
-            #     };
-            #     useFetchCargoVendor = true;
-            #     inherit pname version cargoHash;
-            #     nativeBuildInputs = [ pkgs.pkg-config pkgs.protobuf pkgs.rustPlatform.bindgenHook pkgs.clang ];
-            #     buildInputs = [
-            #       pkgs.openssl
-            #       pkgs.rocksdb_8_11
-            #       pkgs.snappy
-            #       pkgs.zlib
-            #     ]
-            #     ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.udev ]
-            #     ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-            #       pkgs.apple-sdk_26
-            #       # pkgs.darwin.libobjc
-            #       pkgs.stdenv.cc.cc.lib
-            #     ];
-            #     doCheck = false;
-            #     PROTOC = "${pkgs.protobuf}/bin/protoc";
-            #     CXX = "clang++";
-            #     CXXFLAGS = "-std=c++11";
-            #     ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
-            #     SNAPPY_LIB_DIR = "${pkgs.snappy}/lib";
-            #     OPENSSL_NO_VENDOR = 1;
-            #     OPENSSL_STATIC = 1;
-
-            #     CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
-            #     LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
-            #   };
 
             solana-platform-tools = { version ? "1.45" }:
               let
@@ -651,7 +492,7 @@ with builtins; let
 
           myDevShell.env = env;
           myDevShell.buildInputs = buildInputs ++ [
-            ownPkgs.spl-token4
+            ownPkgs.spl-token
             # (callPackage ownPkgs.solana-cli { })
             (callPackage ownPkgs.cli2 { })
             (callPackage ownPkgs.anchor-cli { })
