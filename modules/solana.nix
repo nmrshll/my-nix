@@ -19,18 +19,18 @@ with builtins; let
               in
               pkgs.fetchFromGitHub { inherit sha256; owner = "anza-xyz"; repo = "agave"; rev = "v${version}"; fetchSubmodules = true; };
 
-            solana-platform-tools =
-              let
-                mapSystemStr = { x86_64-linux = "linux-x86_64"; aarch64-linux = "linux-aarch64"; x86_64-darwin = "osx-x86_64"; aarch64-darwin = "osx-aarch64"; x86_64-windows = "windows-x86_64"; };
-                perVersionHash = {
-                  x86_64-linux."1.45" = "sha256-QGm7mOd3UnssYhPt8RSSRiS5LiddkXuDtWuakpak0Y0=";
-                  aarch64-linux."1.45" = "sha256-UzOekFBdjtHJzzytmkQETd6Mrb+cdAsbZBA0kzc75Ws=";
-                  x86_64-darwin."1.45" = "sha256-EE7nVJ+8a/snx4ea7U+zexU/vTMX16WoU5Kbv5t2vN8=";
-                  aarch64-darwin."1.45" = "sha256-aJjYD4vhsLcBMAC8hXrecrMvyzbkas9VNF9nnNxtbiE=";
-                  x86_64-windows."1.45" = "sha256-7D7NN2tClnQ/UAwKUZEZqNVQxcKWguU3Fs1pgsC5CIk=";
-                }.${system};
-              in
-              mapAttrs (version: hash: { sysStr = mapSystemStr.${system}; inherit hash version; }) perVersionHash;
+            # solana-platform-tools =
+            #   let
+            #     mapSystemStr = { x86_64-linux = "linux-x86_64"; aarch64-linux = "linux-aarch64"; x86_64-darwin = "osx-x86_64"; aarch64-darwin = "osx-aarch64"; x86_64-windows = "windows-x86_64"; };
+            #     perVersionHash = {
+            #       x86_64-linux."1.45" = "sha256-QGm7mOd3UnssYhPt8RSSRiS5LiddkXuDtWuakpak0Y0=";
+            #       aarch64-linux."1.45" = "sha256-UzOekFBdjtHJzzytmkQETd6Mrb+cdAsbZBA0kzc75Ws=";
+            #       x86_64-darwin."1.45" = "sha256-EE7nVJ+8a/snx4ea7U+zexU/vTMX16WoU5Kbv5t2vN8=";
+            #       aarch64-darwin."1.45" = "sha256-aJjYD4vhsLcBMAC8hXrecrMvyzbkas9VNF9nnNxtbiE=";
+            #       x86_64-windows."1.45" = "sha256-7D7NN2tClnQ/UAwKUZEZqNVQxcKWguU3Fs1pgsC5CIk=";
+            #     }.${system};
+            #   in
+            #   mapAttrs (version: hash: { sysStr = mapSystemStr.${system}; inherit hash version; }) perVersionHash;
           };
 
           ownPkgs = {
@@ -72,56 +72,9 @@ with builtins; let
               mkPkg { };
 
 
-            solana-platform-tools = { version ? "1.45" }:
-              let
-                source = srcs.solana-platform-tools.${version};
-                agaveSrc = srcs.agave { version = "2.2.3"; };
-              in
-              stdenv.mkDerivation {
-                inherit version;
-                pname = "solana-platform-tools";
-                src = pkgs.fetchzip {
-                  url = "https://github.com/anza-xyz/platform-tools/releases/download/v${version}/platform-tools-${source.sysStr}.tar.bz2";
-                  hash = source.hash;
-                  stripRoot = false;
-                };
-                doCheck = false;
-                dontCheckForBrokenSymlinks = true;
-                nativeBuildInputs = lib.optionals stdenv.isLinux [ pkgs.autoPatchelfHook ];
-                buildInputs = [
-                  pkgs.libedit
-                  pkgs.zlib
-                  stdenv.cc.cc
-                  pkgs.libclang.lib
-                  pkgs.xz
-                  pkgs.python315
-                ] ++ lib.optionals stdenv.isLinux [ pkgs.udev ];
-                installPhase = ''
-                  platformtools=$out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
-                  mkdir -p $platformtools
-                  cp -r $src/llvm $platformtools
-                  cp -r $src/rust $platformtools
-                  chmod 0755 -R $out
-                  touch $platformtools-${version}.md
-
-                  criterion=$out/bin/platform-tools-sdk/sbf/dependencies/criterion
-                  mkdir $criterion
-                  ln -s ${pkgs.criterion.dev}/include $criterion/include
-                  ln -s ${pkgs.criterion}/lib $criterion/lib
-                  ln -s ${pkgs.criterion}/share $criterion/share
-                  touch $criterion-v${pkgs.criterion.version}.md
-
-                  cp -ar ${agaveSrc}/platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
-                '';
-                postFixup = lib.optionals stdenv.isLinux ''
-                  patchelf --replace-needed libedit.so.2 libedit.so $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools/llvm/lib/liblldb.so.18.1.7-rust-dev
-                '';
-                stripExclude = [ "*.rlib" ];
-              };
-
             cargo-build-sbf = { version ? "2.3.0" }:
               let
-                platform-tools = callPackage ownPkgs.solana-platform-tools { };
+                platform-tools = ownPkgs.platform-tools;
                 srcPatched = stdenv.mkDerivation {
                   name = "cargo-build-sbf-patched";
                   src = srcs.agave { inherit version; };
@@ -241,7 +194,7 @@ with builtins; let
                   hash = "sha256-c+UybdZCFL40TNvxn0PHR1ch7VPhhJFDSIScetRpS3o=";
                   rust-nightly = pkgs.rust-bin.nightly."2025-04-21".minimal;
                   rust = pkgs.rust-bin.stable."1.85.0".default;
-                  platform-tools = callPackage ownPkgs.solana-platform-tools { version = "1.45"; };
+                  platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = "1.45"; };
                   patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
                 };
                 versionDeps = versionsDeps.${version};
@@ -252,7 +205,7 @@ with builtins; let
                   rev = "v${version}";
                   hash = versionDeps.hash;
                 };
-                src = stdenv.mkDerivation {
+                patchedSrc = stdenv.mkDerivation {
                   name = "anchor-cli-patched";
                   src = originalSrc;
                   phases = [ "unpackPhase" "patchPhase" "installPhase" ];
@@ -265,7 +218,8 @@ with builtins; let
                   '';
                 };
                 commonArgs = {
-                  inherit pname version src;
+                  inherit pname version;
+                  src = patchedSrc;
                   strictDeps = true;
                   doCheck = false;
                   nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.makeWrapper ];
@@ -294,175 +248,78 @@ with builtins; let
                 meta = { mainProgram = "anchor"; description = "Anchor cli"; };
               });
 
+            platform-tools =
+              let
+                mapSystemStr = { x86_64-linux = "linux-x86_64"; aarch64-linux = "linux-aarch64"; x86_64-darwin = "osx-x86_64"; aarch64-darwin = "osx-aarch64"; };
+                versions = {
+                  "1.45".x86_64-linux.sha256 = "sha256-QGm7mOd3UnssYhPt8RSSRiS5LiddkXuDtWuakpak0Y0=";
+                  "1.45".aarch64-linux.sha256 = "sha256-UzOekFBdjtHJzzytmkQETd6Mrb+cdAsbZBA0kzc75Ws=";
+                  "1.45".x86_64-darwin.sha256 = "sha256-EE7nVJ+8a/snx4ea7U+zexU/vTMX16WoU5Kbv5t2vN8=";
+                  "1.45".aarch64-darwin.sha256 = "sha256-aJjYD4vhsLcBMAC8hXrecrMvyzbkas9VNF9nnNxtbiE=";
+                  # "1.52".x86_64-linux.sha256 = "";
+                  "1.52".aarch64-darwin.sha256 = "sha256-+seEpShbkN87ECsL7XeMF8oixqqLtO9aR2lmc+qssSY=";
+                };
+                mkPkg = { version ? "1.52" }:
+                  let
+                    agaveSrc = srcs.agave { version = "2.2.3"; };
+                    v = versions.${version}.${pkgs.stdenv.hostPlatform.system};
+                    sysStr = mapSystemStr.${pkgs.stdenv.hostPlatform.system};
+                    src = pkgs.fetchzip {
+                      url = "https://github.com/anza-xyz/platform-tools/releases/download/v${version}/platform-tools-${sysStr}.tar.bz2";
+                      sha256 = v.sha256;
+                      stripRoot = false;
+                    };
+                  in
+                  stdenv.mkDerivation {
+                    inherit version src;
+                    pname = "solana-platform-tools";
+                    doCheck = false;
+                    dontCheckForBrokenSymlinks = true;
+                    nativeBuildInputs = lib.optionals stdenv.isLinux [ pkgs.autoPatchelfHook ];
+                    buildInputs = [
+                      pkgs.libedit
+                      pkgs.zlib
+                      stdenv.cc.cc
+                      pkgs.libclang.lib
+                      pkgs.xz
+                      pkgs.python315
+                    ] ++ lib.optionals stdenv.isLinux [ pkgs.udev ];
+                    installPhase = ''
+                      platformtools=$out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
+                      mkdir -p $platformtools
+                      cp -r $src/llvm $platformtools
+                      cp -r $src/rust $platformtools
+                      chmod 0755 -R $out
+                      touch $platformtools-${version}.md
 
-            # cli2 =
-            #   { stdenv
-            #   , fetchFromGitHub
-            #   , fetchurl
-            #   , lib
-            #   , rustPlatform
-            #   , udev
-            #   , protobuf
-            #   , installShellFiles
-            #   , pkg-config
-            #   , openssl
-            #   , nix-update-script
-            #   , versionCheckHook
-            #   , clang
-            #   , libclang
-            #   , rocksdb
-            #   , # Taken from https://github.com/solana-labs/solana/blob/master/scripts/cargo-install-all.sh#L84
-            #     solanaPkgs ? [
-            #       "cargo-build-sbf"
-            #       "cargo-test-sbf"
-            #       "solana"
-            #       "solana-bench-tps"
-            #       "solana-faucet"
-            #       "solana-gossip"
-            #       "agave-install"
-            #       "solana-keygen"
-            #       "agave-ledger-tool"
-            #       "solana-net-shaper"
-            #       "agave-validator"
-            #       "solana-test-validator"
-            #     ]
-            #     ++ [
-            #       # XXX: Ensure `solana-genesis` is built LAST!
-            #       # See https://github.com/solana-labs/solana/issues/5826
-            #       "solana-genesis"
-            #     ]
-            #   ,
-            #   }:
-            #   let
-            #     version = "3.0.12";
-            #     hash = "sha256-Zubu7cTSJrJFSuguCo3msdas/QshFpo1+T6DVQyqrhY=";
+                      criterion=$out/bin/platform-tools-sdk/sbf/dependencies/criterion
+                      mkdir $criterion
+                      ln -s ${pkgs.criterion.dev}/include $criterion/include
+                      ln -s ${pkgs.criterion}/lib $criterion/lib
+                      ln -s ${pkgs.criterion}/share $criterion/share
+                      touch $criterion-v${pkgs.criterion.version}.md
 
-            #     # Platform tools configuration
-            #     platformToolsVersion = "v1.52";
-            #     platformToolsSrc =
-            #       if stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64 then
-            #         fetchurl
-            #           {
-            #             url = "https://github.com/anza-xyz/platform-tools/releases/download/${platformToolsVersion}/platform-tools-osx-aarch64.tar.bz2";
-            #             sha256 = "sha256-Fyffsx6DPOd30B5wy0s869JrN2vwnYBSfwJFfUz2/QA="; # Run: nix-prefetch-url --type sha256 <url>
-            #           }
-            #       else if stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64 then
-            #         fetchurl
-            #           {
-            #             url = "https://github.com/anza-xyz/platform-tools/releases/download/${platformToolsVersion}/platform-tools-linux-x86_64.tar.bz2";
-            #             sha256 = "sha256-izhh6T2vCF7BK2XE+sN02b7EWHo94Whx2msIqwwdkH4"; # Run: nix-prefetch-url --type sha256 <url>
-            #           }
-            #       else null;
-            #   in
-            #   rustPlatform.buildRustPackage rec {
-            #     pname = "solana-cli";
-            #     inherit version;
+                      cp -ar ${agaveSrc}/platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
+                    '';
+                    postFixup = lib.optionals stdenv.isLinux ''
+                      patchelf --replace-needed libedit.so.2 libedit.so $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools/llvm/lib/liblldb.so.18.1.7-rust-dev
+                    '';
+                    stripExclude = [ "*.rlib" ];
+                    passthru = { inherit versions mkPkg src; };
+                  };
+              in
+              mkPkg { };
 
-            #     src = fetchFromGitHub {
-            #       owner = "anza-xyz";
-            #       repo = "agave";
-            #       tag = "v${version}";
-            #       inherit hash;
-            #     };
-
-            #     cargoHash = "sha256-qnZbFkyzE2hdy/ynZQZmCs5kCeTUMci9f/pVKID/mRQ=";
-
-            #     strictDeps = true;
-            #     cargoBuildFlags = map (n: "--bin=${n}") solanaPkgs;
-            #     RUSTFLAGS = "-Amismatched_lifetime_syntaxes -Adead_code -Aunused-parens";
-            #     LIBCLANG_PATH = "${libclang.lib}/lib";
-
-            #     # Even tho the tests work, a shit ton of them try to connect to a local RPC
-            #     # or access internet in other ways, eventually failing due to Nix sandbox.
-            #     # Maybe we could restrict the check to the tests that don't require an RPC,
-            #     # but judging by the quantity of tests, that seems like a lengthty work and
-            #     # I'm not in the mood ((ΦωΦ))
-            #     doCheck = false;
-
-            #     nativeBuildInputs = [
-            #       installShellFiles
-            #       protobuf
-            #       pkg-config
-            #     ];
-            #     buildInputs = [
-            #       openssl
-            #       clang
-            #       libclang
-            #       rustPlatform.bindgenHook
-            #     ]
-            #     ++ lib.optionals stdenv.hostPlatform.isLinux [ udev ];
-
-            #     doInstallCheck = true;
-
-            #     nativeInstallCheckInputs = [ versionCheckHook ];
-            #     versionCheckProgram = "${placeholder "out"}/bin/solana";
-            #     versionCheckProgramArg = "--version";
-
-            #     postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
-            #       installShellCompletion --cmd solana \
-            #         --bash <($out/bin/solana completion --shell bash) \
-            #         --fish <($out/bin/solana completion --shell fish)
-
-            #       mkdir -p $out/bin/platform-tools-sdk
-            #       cp -r ./platform-tools-sdk/sbf $out/bin/platform-tools-sdk
-
-            #       mkdir -p $out/bin/deps
-            #       find . -name libsolana_program.dylib -exec cp {} $out/bin/deps \;
-            #       find . -name libsolana_program.rlib -exec cp {} $out/bin/deps \;
-            #     '' + lib.optionalString (platformToolsSrc != null) ''
-            #       # Unpack platform-tools into sbf directory
-            #       mkdir -p $out/bin/platform-tools-sdk/sbf/dependencies
-            #       mkdir -p $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
-            #       tar -xjf ${platformToolsSrc} -C $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools --strip-components=1
-
-            #       # Remove broken symlinks
-            #       find $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools -type l ! -exec test -e {} \; -delete
-            #     '';
-
-            #     # Used by build.rs in the rocksdb-sys crate. If we don't set these, it would
-            #     # try to build RocksDB from source.
-            #     ROCKSDB_LIB_DIR = "${rocksdb}/lib";
-
-            #     # Require this on darwin otherwise the compiler starts rambling about missing
-            #     # cmath functions
-            #     CPPFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
-            #     LDFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
-
-            #     # If set, always finds OpenSSL in the system, even if the vendored feature is enabled.
-            #     OPENSSL_NO_VENDOR = 1;
-
-            #     meta = with lib; {
-            #       description = "Web-Scale Blockchain for fast, secure, scalable, decentralized apps and marketplaces";
-            #       homepage = "https://solana.com";
-            #       license = licenses.asl20;
-            #       maintainers = with maintainers; [
-            #         netfox
-            #         happysalada
-            #         aikooo7
-            #         JacoMalan1
-            #       ];
-            #       platforms = platforms.unix;
-            #     };
-
-            #     passthru.updateScript = nix-update-script { };
-            #   };
-
-            cli3 =
+            solana-cli =
               let
                 versions."3.0.12" = {
                   hash = "sha256-Zubu7cTSJrJFSuguCo3msdas/QshFpo1+T6DVQyqrhY=";
                   cargoHash = "sha256-qnZbFkyzE2hdy/ynZQZmCs5kCeTUMci9f/pVKID/mRQ=";
-                  platformToolsVersion = "v1.52";
-                  platformToolsHash = {
-                    aarch64-darwin = "sha256-Fyffsx6DPOd30B5wy0s869JrN2vwnYBSfwJFfUz2/QA=";
-                    x86_64-linux = "sha256-izhh6T2vCF7BK2XE+sN02b7EWHo94Whx2msIqwwdkH4";
-                  };
+                  platformToolsVersion = "1.52";
                 };
-
                 mkPkg = { version ? "3.0.12", solanaPkgs ? null }:
                   let
                     v = versions.${version};
-
                     solanaCrates = if solanaPkgs != null then solanaPkgs else [
                       "cargo-build-sbf"
                       "cargo-test-sbf"
@@ -477,14 +334,7 @@ with builtins; let
                       "agave-validator"
                       "solana-test-validator"
                     ] ++ [ "solana-genesis" ]; # Ensure `solana-genesis` is built LAST!  # See https://github.com/solana-labs/solana/issues/5826
-
-                    sysStr = mapSystemStr.${pkgs.stdenv.hostPlatform.system} or null;
-                    platformToolsSrc =
-                      if sysStr != null then
-                        (pkgs.fetchurl {
-                          url = "https://github.com/anza-xyz/platform-tools/releases/download/${v.platformToolsVersion}/platform-tools-${sysStr}.tar.bz2";
-                          sha256 = v.platformToolsHash.${pkgs.stdenv.hostPlatform.system};
-                        }) else null;
+                    platformToolsSrc = (ownPkgs.platform-tools.mkPkg { version = v.platformToolsVersion; }).src;
                   in
                   pkgs.rustPlatform.buildRustPackage {
                     pname = "solana-cli";
@@ -527,7 +377,8 @@ with builtins; let
                       find . -name libsolana_program.rlib -exec cp {} $out/bin/deps \;
                     '' + pkgs.lib.optionalString (platformToolsSrc != null) ''
                       mkdir -p $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
-                      tar -xjf ${platformToolsSrc} -C $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools --strip-components=1
+                      cp -r ${platformToolsSrc}/* $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools/
+                      chmod -R u+w $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
                       find $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools -type l ! -exec test -e {} \; -delete
                     '';
                     ROCKSDB_LIB_DIR = "${pkgs.rocksdb}/lib";
@@ -574,19 +425,15 @@ with builtins; let
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
           packages = {
-            inherit (ownPkgs) spl-token-3 spl-token2 spl-token4 cli3;
-            solana-platform-tools = callPackage ownPkgs.solana-platform-tools { };
-            solana-cli = callPackage ownPkgs.solana-cli { };
+            inherit (ownPkgs) spl-token-3 spl-token2 spl-token4 cli3 platform-tools;
             anchor-cli = callPackage ownPkgs.anchor-cli { };
-            # spl-token = callPackage ownPkgs.spl-token { };
             cargo-build-sbf = callPackage ownPkgs.cargo-build-sbf { };
           };
 
           myDevShell.env = env;
           myDevShell.buildInputs = buildInputs ++ [
             ownPkgs.spl-token
-            # (callPackage ownPkgs.solana-cli { })
-            ownPkgs.cli3
+            ownPkgs.solana-cli
             (callPackage ownPkgs.anchor-cli { })
             (callPackage ownPkgs.cargo-build-sbf { })
           ] ++ (attrValues scripts);
