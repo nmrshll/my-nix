@@ -1,10 +1,10 @@
 with builtins; let
-  flakeModules.solana = part@{ self, config, pkgs, inputs, ... }: {
+  flakeModules.solana = part@{ ... }: {
     perSystem = { pkgs, lib, ... }:
       let
         crane = part.config.flakeInputsOf.my-nix.crane;
         craneLib = crane.mkLib pkgs;
-        inherit (pkgs) stdenv callPackage;
+        inherit (pkgs) stdenv;
 
         ownPkgs = {
           agave-src =
@@ -62,185 +62,156 @@ with builtins; let
             mkPkg { };
 
 
-          cargo-build-sbf = { version ? "2.3.0" }:
+          cargo-build-sbf =
             let
-              platform-tools = ownPkgs.platform-tools;
-              srcPatched = stdenv.mkDerivation {
-                name = "cargo-build-sbf-patched";
-                src = ownPkgs.agave-src.mkPkg { inherit version; };
-                phases = [ "unpackPhase" "patchPhase" "installPhase" ];
-                patches = [ ../pkgs/cargo-build-sbf-main.patch ];
-                installPhase = ''
-                  runHook preInstall
-                  mkdir -p $out
-                  cp -r ./* $out/
-                  runHook postInstall
-                '';
+              versions = {
+                "2.3.0".sha256 = "";
               };
-              commonArgs = rec {
-                pname = "cargo-build-sbf";
-                inherit version;
-                src = srcPatched;
-                strictDeps = true;
-                cargoExtraArgs = "--bin=${pname}";
-                doCheck = false;
-                nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.clang ];
-                buildInputs = [
-                  pkgs.openssl
-                  pkgs.rustPlatform.bindgenHook
-                  pkgs.makeWrapper
-                ]
-                ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-                ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
-                PROTOC = "${pkgs.protobuf}/bin/protoc";
-                CXX = "clang++";
-                CXXFLAGS = "-std=c++11";
-                ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
-                ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
-                CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
-                LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
-                OPENSSL_NO_VENDOR = 1;
-              };
-              cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = srcPatched; });
-            in
-            craneLib.buildPackage (commonArgs // {
-              inherit cargoArtifacts;
-              postInstall = ''
-                WRAPPED_PROG="$out/bin/.cargo-build-sbf-wrapped"
-                mv $out/bin/cargo-build-sbf $out/bin/.cargo-build-sbf-wrapped
-                cat > $out/bin/cargo-build-sbf <<'WRAP_EOF'
-                  #!/bin/sh
-                  set -x
-                  required_flags=( "--no-rustup-override" "--skip-tools-install" )
-                  seen_flags=""
-                  extraArgs=()
-                  for arg in "$@"; do
-                      for flag in "''${required_flags[@]}"; do
-                          if [ "$arg" = "$flag" ]; then
-                              seen_flags="$seen_flags $flag"
-                              break
-                          fi
+              mkPkg = { version ? "2.3.0" }:
+                let
+                  platform-tools = ownPkgs.platform-tools;
+                  srcPatched = stdenv.mkDerivation {
+                    name = "cargo-build-sbf-patched";
+                    src = ownPkgs.agave-src.mkPkg { inherit version; };
+                    phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+                    patches = [ ../pkgs/cargo-build-sbf-main.patch ];
+                    installPhase = ''
+                      runHook preInstall
+                      mkdir -p $out
+                      cp -r ./* $out/
+                      runHook postInstall
+                    '';
+                  };
+                  commonArgs = rec {
+                    pname = "cargo-build-sbf";
+                    inherit version;
+                    src = srcPatched;
+                    strictDeps = true;
+                    cargoExtraArgs = "--bin=${pname}";
+                    doCheck = false;
+                    nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.clang ];
+                    buildInputs = [
+                      pkgs.openssl
+                      pkgs.rustPlatform.bindgenHook
+                      pkgs.makeWrapper
+                    ]
+                    ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
+                    ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
+                    PROTOC = "${pkgs.protobuf}/bin/protoc";
+                    CXX = "clang++";
+                    CXXFLAGS = "-std=c++11";
+                    ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
+                    ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
+                    CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
+                    LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
+                    OPENSSL_NO_VENDOR = 1;
+                  };
+                  cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = srcPatched; });
+                in
+                craneLib.buildPackage (commonArgs // {
+                  inherit cargoArtifacts;
+                  postInstall = ''
+                    WRAPPED_PROG="$out/bin/.cargo-build-sbf-wrapped"
+                    mv $out/bin/cargo-build-sbf $out/bin/.cargo-build-sbf-wrapped
+                    cat > $out/bin/cargo-build-sbf <<'WRAP_EOF'
+                      #!/bin/sh
+                      set -x
+                      required_flags=( "--no-rustup-override" "--skip-tools-install" )
+                      seen_flags=""
+                      extraArgs=()
+                      for arg in "$@"; do
+                          for flag in "''${required_flags[@]}"; do
+                              if [ "$arg" = "$flag" ]; then
+                                  seen_flags="$seen_flags $flag"
+                                  break
+                              fi
+                          done
                       done
-                  done
-                  for flag in "''${required_flags[@]}"; do
-                      echo "$seen_flags" | grep -qw \"$flag\" || extraArgs+=("$flag")
-                  done
-                  echo "Original args: $@"
-                  echo "Extra args to add: ''${extraArgs[@]}"
-                  export SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
-                  export RUSTC="${platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin/rustc"
-                  exec -a "$0" WRAPPED_PROG "$@"
-                WRAP_EOF
-                sed -i "s|WRAPPED_PROG|$WRAPPED_PROG|g" $out/bin/cargo-build-sbf
-                chmod +x $out/bin/cargo-build-sbf
-              '';
-            });
+                      for flag in "''${required_flags[@]}"; do
+                          echo "$seen_flags" | grep -qw \"$flag\" || extraArgs+=("$flag")
+                      done
+                      echo "Original args: $@"
+                      echo "Extra args to add: ''${extraArgs[@]}"
+                      export SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
+                      export RUSTC="${platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin/rustc"
+                      exec -a "$0" WRAPPED_PROG "$@"
+                    WRAP_EOF
+                    sed -i "s|WRAPPED_PROG|$WRAPPED_PROG|g" $out/bin/cargo-build-sbf
+                    chmod +x $out/bin/cargo-build-sbf
+                  '';
+                  passthru = { inherit versions mkPkg; };
+                });
+            in
+            mkPkg { };
 
-          # solana-cli = { version ? "2.2.3" }:
-          #   let
-          #     src = srcs.agave { inherit version; };
-          #     solanaPkgs = [ "agave-install" "agave-install-init" "agave-ledger-tool" "agave-validator" "agave-watchtower" "cargo-test-sbf" "rbpf-cli" "solana" "solana-bench-tps" "solana-faucet" "solana-gossip" "solana-keygen" "solana-log-analyzer" "solana-net-shaper" "solana-dos" "solana-stake-accounts" "solana-test-validator" "solana-tokens" "solana-genesis" ];
-          #     commonArgs = {
-          #       pname = "solana-cli";
-          #       inherit src version;
-          #       strictDeps = true;
-          #       cargoExtraArgs = lib.concatMapStringsSep " " (n: "--bin=${n}") solanaPkgs;
-          #       doCheck = false;
-          #       nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.clang ];
-          #       buildInputs = [
-          #         pkgs.openssl
-          #         pkgs.rustPlatform.bindgenHook
-          #         pkgs.makeWrapper
-          #       ]
-          #       ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-          #       ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
-          #       PROTOC = "${pkgs.protobuf}/bin/protoc";
-          #       CXXFLAGS = "-std=c++11";
-          #       OPENSSL_NO_VENDOR = 1;
-          #       ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
-          #       ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
 
-          #       # PROTOC = "${pkgs.protobuf}/bin/protoc";
-          #       LIBUSB_NO_VENDOR = 1;
-          #       CC = "${pkgs.llvmPackages.clang}/bin/clang";
-          #       CXX = "${pkgs.llvmPackages.clang}/bin/clang++";
-          #       # CXXFLAGS = "-std=c++11";
-          #       NIX_CFLAGS_COMPILE = "-isystem ${pkgs.llvmPackages.libcxx.dev}/include/c++/v1";
-          #     };
-          #     cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = src; });
-          #   in
-          #   craneLib.buildPackage (commonArgs // {
-          #     inherit cargoArtifacts;
-          #     postInstall = ''
-          #       mkdir -p $out/bin/platform-tools-sdk/sbf
-          #       cp -a ./platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
-          #     '';
-          #   });
-
-          anchor-cli = { version ? "0.31.1" }:
+          anchor-cli =
             let
-              pname = "anchor-cli";
-              versionsDeps."0.31.1" = {
-                hash = "sha256-c+UybdZCFL40TNvxn0PHR1ch7VPhhJFDSIScetRpS3o=";
+              versions."0.31.1" = {
+                sha256 = "sha256-c+UybdZCFL40TNvxn0PHR1ch7VPhhJFDSIScetRpS3o=";
                 rust-nightly = pkgs.rust-bin.nightly."2025-04-21".minimal;
-                rust = pkgs.rust-bin.stable."1.85.0".default;
                 platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = "1.45"; };
                 patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
               };
-              versionDeps = versionsDeps.${version};
-              anchorCraneLib = (crane.mkLib pkgs).overrideToolchain versionDeps.rust;
-              originalSrc = pkgs.fetchFromGitHub {
-                owner = "coral-xyz";
-                repo = "anchor";
-                rev = "v${version}";
-                hash = versionDeps.hash;
-              };
-              patchedSrc = stdenv.mkDerivation {
-                name = "anchor-cli-patched";
-                src = originalSrc;
-                phases = [ "unpackPhase" "patchPhase" "installPhase" ];
-                patches = versionDeps.patches;
-                installPhase = ''
-                  runHook preInstall
-                  mkdir -p $out
-                  cp -r ./* $out/
-                  runHook postInstall
-                '';
-              };
-              commonArgs = {
-                inherit pname version;
-                src = patchedSrc;
-                strictDeps = true;
-                doCheck = false;
-                nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.makeWrapper ];
-                buildInputs = [ ]
-                  ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-                  ++ lib.optional stdenv.isDarwin [ ];
-              };
-            in
-            anchorCraneLib.buildPackage (commonArgs // {
-              postInstall =
+              mkPkg = { version ? "0.31.1" }:
                 let
-                  cargo-nightly = pkgs.runCommand "cargo-nightly"
-                    { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
-                    mkdir -p $out/bin
-                    ln -s ${versionDeps.rust-nightly}/bin/cargo $out/bin/cargo
-                    wrapProgram $out/bin/cargo \
-                      --prefix PATH : "${versionDeps.rust-nightly}/bin"
-                  '';
+                  v = versions.${version};
+                  pname = "anchor-cli";
+                  originalSrc = pkgs.fetchFromGitHub {
+                    owner = "coral-xyz";
+                    repo = "anchor";
+                    rev = "v${version}";
+                    hash = v.sha256;
+                  };
+                  patchedSrc = stdenv.mkDerivation {
+                    name = "anchor-cli-patched";
+                    src = originalSrc;
+                    phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+                    patches = v.patches;
+                    installPhase = ''
+                      runHook preInstall
+                      mkdir -p $out
+                      cp -r ./* $out/
+                      runHook postInstall
+                    '';
+                  };
+                  commonArgs = {
+                    inherit pname version;
+                    src = patchedSrc;
+                    strictDeps = true;
+                    doCheck = false;
+                    nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.makeWrapper ];
+                    buildInputs = [ ]
+                      ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
+                      ++ lib.optional stdenv.isDarwin [ ];
+                  };
+
                 in
-                ''
-                  rust=${versionDeps.platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin
-                  wrapProgram $out/bin/anchor \
-                    --prefix PATH : "$rust" ${if versionDeps ? rust-nightly then "--set RUST_NIGHTLY_BIN \"${cargo-nightly}/bin\"" else ""}
-                '';
-              cargoExtraArgs = "-p ${pname}";
-              meta = { mainProgram = "anchor"; description = "Anchor cli"; };
-            });
+                craneLib.buildPackage (commonArgs // {
+                  postInstall =
+                    let
+                      cargo-nightly = pkgs.runCommand "cargo-nightly"
+                        { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
+                        mkdir -p $out/bin
+                        ln -s ${v.rust-nightly}/bin/cargo $out/bin/cargo
+                        wrapProgram $out/bin/cargo \
+                          --prefix PATH : "${v.rust-nightly}/bin"
+                      '';
+                    in
+                    ''
+                      rust=${v.platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin
+                      wrapProgram $out/bin/anchor \
+                        --prefix PATH : "$rust" ${if v ? rust-nightly then "--set RUST_NIGHTLY_BIN \"${cargo-nightly}/bin\"" else ""}
+                    '';
+                  cargoExtraArgs = "-p ${pname}";
+                  meta = { mainProgram = "anchor"; description = "Anchor cli"; };
+                });
+            in
+            mkPkg { };
+
 
           platform-tools =
             let
-              mapSystemStr = { x86_64-linux = "linux-x86_64"; aarch64-linux = "linux-aarch64"; x86_64-darwin = "osx-x86_64"; aarch64-darwin = "osx-aarch64"; };
               versions = {
                 "1.45".x86_64-linux.sha256 = "sha256-QGm7mOd3UnssYhPt8RSSRiS5LiddkXuDtWuakpak0Y0=";
                 "1.45".aarch64-linux.sha256 = "sha256-UzOekFBdjtHJzzytmkQETd6Mrb+cdAsbZBA0kzc75Ws=";
@@ -251,10 +222,14 @@ with builtins; let
               };
               mkPkg = { version ? "1.52" }:
                 let
-                  # agaveSrc = srcs.agave { version = "2.2.3"; };
-                  agaveSrc = ownPkgs.agave-src.mkPkg { version = "2.2.3"; };
                   v = versions.${version}.${pkgs.stdenv.hostPlatform.system};
-                  sysStr = mapSystemStr.${pkgs.stdenv.hostPlatform.system};
+                  agaveSrc = ownPkgs.agave-src.mkPkg { version = "2.2.3"; };
+                  sysStr = {
+                    x86_64-linux = "linux-x86_64";
+                    aarch64-linux = "linux-aarch64";
+                    x86_64-darwin = "osx-x86_64";
+                    aarch64-darwin = "osx-aarch64";
+                  }.${pkgs.stdenv.hostPlatform.system};
                   src = pkgs.fetchzip {
                     url = "https://github.com/anza-xyz/platform-tools/releases/download/v${version}/platform-tools-${sysStr}.tar.bz2";
                     sha256 = v.sha256;
@@ -415,18 +390,18 @@ with builtins; let
       {
         pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
-        packages = {
-          inherit (ownPkgs) spl-token-3 spl-token2 spl-token4 cli3 platform-tools;
-          anchor-cli = callPackage ownPkgs.anchor-cli { };
-          cargo-build-sbf = callPackage ownPkgs.cargo-build-sbf { };
-        };
+        # packages = {
+        #   inherit (ownPkgs) spl-token-3 spl-token2 spl-token4 cli3 platform-tools;
+        #   anchor-cli = callPackage ownPkgs.anchor-cli { };
+        #   # cargo-build-sbf = callPackage ownPkgs.cargo-build-sbf { };
+        # };
 
         myDevShell.env = env;
         myDevShell.buildInputs = buildInputs ++ [
           ownPkgs.spl-token
           ownPkgs.solana-cli
-          (callPackage ownPkgs.anchor-cli { })
-          (callPackage ownPkgs.cargo-build-sbf { })
+          ownPkgs.anchor-cli
+          ownPkgs.cargo-build-sbf
         ] ++ (attrValues scripts);
       };
   };
