@@ -30,7 +30,7 @@ with builtins; let
               mkPkg = { version ? "5.6.1" }:
                 let v = versions.${version};
                 in pkgs.rustPlatform.buildRustPackage {
-                  pname = "spl-token4";
+                  pname = "spl-token";
                   inherit version;
                   src = pkgs.fetchFromGitHub { owner = "solana-program"; repo = "token-2022"; rev = "cli@v${version}"; sha256 = v.sha256; };
                   cargoHash = v.cargoHash;
@@ -314,7 +314,7 @@ with builtins; let
                   cargoHash = v.cargoHash;
                   strictDeps = true;
                   cargoBuildFlags = map (n: "--bin=${n}") solanaCrates;
-                  RUSTFLAGS = "-Amismatched_lifetime_syntaxes -Adead_code -Aunused-parens";
+                  RUSTFLAGS = "-A warnings";
                   LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
                   doCheck = false;
                   nativeBuildInputs = [
@@ -390,11 +390,9 @@ with builtins; let
       {
         pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
-        # packages = {
-        #   inherit (ownPkgs) spl-token-3 spl-token2 spl-token4 cli3 platform-tools;
-        #   anchor-cli = callPackage ownPkgs.anchor-cli { };
-        #   # cargo-build-sbf = callPackage ownPkgs.cargo-build-sbf { };
-        # };
+        packages = {
+          inherit (ownPkgs) spl-token platform-tools anchor-cli solana-cli cargo-build-sbf agave-src;
+        };
 
         myDevShell.env = env;
         myDevShell.buildInputs = buildInputs ++ [
