@@ -1,5 +1,5 @@
 with builtins; let
-  flakeModules.solana = part@{ ... }: {
+  flakeModules.solana = part@{ config, ... }: {
     perSystem = { pkgs, lib, ... }:
       let
         crane = part.config.flakeInputsOf.my-nix.crane;
@@ -388,11 +388,10 @@ with builtins; let
 
       in
       {
+        # imports = [ part.config.flakeModules.rust ];
         pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
-        packages = {
-          inherit (ownPkgs) spl-token platform-tools anchor-cli solana-cli cargo-build-sbf agave-src;
-        };
+        packages = ownPkgs;
 
         myDevShell.env = env;
         myDevShell.buildInputs = buildInputs ++ [
@@ -400,6 +399,7 @@ with builtins; let
           ownPkgs.solana-cli
           ownPkgs.anchor-cli
           ownPkgs.cargo-build-sbf
+          pkgs.surfpool
         ] ++ (attrValues scripts);
       };
   };
