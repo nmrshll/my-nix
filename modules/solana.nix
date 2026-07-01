@@ -10,10 +10,11 @@ with builtins; let
           agave-src =
             let
               versions = {
+                "3.0.12".sha256 = "sha256-Zubu7cTSJrJFSuguCo3msdas/QshFpo1+T6DVQyqrhY=";
                 "2.3.0".sha256 = "sha256-JrK8U0yYq2IS2luC1nbSM0nOC0XZLYKgtv7GBEPtCns=";
                 "2.2.3".sha256 = "sha256-nRCamrwzoPX0cAEcP6p0t0t9Q41RjM6okupOPkJH5lQ=";
               };
-              mkPkg = { version ? "2.3.0" }:
+              mkPkg = { version ? "3.0.12" }:
                 let v = versions.${version}; in pkgs.fetchFromGitHub {
                   inherit (v) sha256; owner = "anza-xyz";
                   repo = "agave";
@@ -62,35 +63,24 @@ with builtins; let
             mkPkg { };
 
 
-          cargo-build-sbf =
+          cargo-build-sbf-unwrapped =
             let
-              versions = {
-                "2.3.0".sha256 = "";
+              versions."4.1.0" = {
+                sha256 = "sha256-pqsR0vh2uixfyG3VgC1lFFgx+0/6UwKmWfNy+Et6H4s=";
+                cargoHash = "";
               };
-              mkPkg = { version ? "2.3.0" }:
+              mkPkg = { version ? "4.1.0" }:
                 let
-                  platform-tools = ownPkgs.platform-tools;
-                  srcPatched = stdenv.mkDerivation {
-                    name = "cargo-build-sbf-patched";
-                    src = ownPkgs.agave-src.mkPkg { inherit version; };
-                    phases = [ "unpackPhase" "patchPhase" "installPhase" ];
-                    patches = [ ../pkgs/cargo-build-sbf-main.patch ];
-                    postPatch = ''
-                      # Remove empty client-test workspace member (cargo 1.95+ rejects it)
-                      sed -i '/"client-test"/d' Cargo.toml
-                      rm -rf client-test
-                    '';
-                    installPhase = ''
-                      runHook preInstall
-                      mkdir -p $out
-                      cp -r ./* $out/
-                      runHook postInstall
-                    '';
+                  v = versions.${version};
+                  src = pkgs.fetchFromGitHub {
+                    owner = "anza-xyz";
+                    repo = "cargo-build-sbf";
+                    tag = "cargo-build-sbf@v${version}";
+                    sha256 = v.sha256;
                   };
                   commonArgs = rec {
                     pname = "cargo-build-sbf";
-                    inherit version;
-                    src = srcPatched;
+                    inherit version src;
                     strictDeps = true;
                     cargoExtraArgs = "--bin=${pname}";
                     doCheck = false;
@@ -103,7 +93,6 @@ with builtins; let
                     ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
                     ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
                     PROTOC = "${pkgs.protobuf}/bin/protoc";
-                    CXX = "clang++";
                     CXXFLAGS = "-std=c++11";
                     ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
                     ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
@@ -115,37 +104,42 @@ with builtins; let
                 in
                 craneLib.buildPackage (commonArgs // {
                   inherit cargoArtifacts;
-                  postInstall = ''
-                    WRAPPED_PROG="$out/bin/.cargo-build-sbf-wrapped"
-                    mv $out/bin/cargo-build-sbf $out/bin/.cargo-build-sbf-wrapped
-                    cat > $out/bin/cargo-build-sbf <<'WRAP_EOF'
-                      #!/bin/sh
-                      set -x
-                      required_flags=( "--no-rustup-override" "--skip-tools-install" )
-                      seen_flags=""
-                      extraArgs=()
-                      for arg in "$@"; do
-                          for flag in "''${required_flags[@]}"; do
-                              if [ "$arg" = "$flag" ]; then
-                                  seen_flags="$seen_flags $flag"
-                                  break
-                              fi
-                          done
-                      done
-                      for flag in "''${required_flags[@]}"; do
-                          echo "$seen_flags" | grep -qw \"$flag\" || extraArgs+=("$flag")
-                      done
-                      echo "Original args: $@"
-                      echo "Extra args to add: ''${extraArgs[@]}"
-                      export SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
-                      export RUSTC="${platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin/rustc"
-                      exec -a "$0" WRAPPED_PROG "$@"
-                    WRAP_EOF
-                    sed -i "s|WRAPPED_PROG|$WRAPPED_PROG|g" $out/bin/cargo-build-sbf
-                    chmod +x $out/bin/cargo-build-sbf
-                  '';
                   passthru = { inherit versions mkPkg; };
                 });
+            in
+            mkPkg { };
+
+          cargo-build-sbf-wrapper =
+            let
+              versions = {
+                "4.1.0" = { platform-tools-version = "1.52"; };
+              };
+              mkPkg = { version ? "4.1.0" }:
+                let
+                  v = versions.${version};
+                  unwrapped = ownPkgs.cargo-build-sbf-unwrapped;
+                  platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = v.platform-tools-version; };
+                in
+                (pkgs.writeShellScriptBin "cargo-build-sbf" ''
+                  set -x
+                  required_flags=( "--no-rustup-override" "--skip-tools-install" )
+                  seen_flags=""
+                  extraArgs=()
+                  for arg in "$@"; do
+                      for flag in "''${required_flags[@]}"; do
+                          if [ "$arg" = "$flag" ]; then
+                              seen_flags="$seen_flags $flag"
+                              break
+                          fi
+                      done
+                  done
+                  for flag in "''${required_flags[@]}"; do
+                      echo "$seen_flags" | grep -qw "$flag" || extraArgs+=("$flag")
+                  done
+                  export SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
+                  export RUSTC="${platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin/rustc"
+                  exec ${unwrapped}/bin/cargo-build-sbf "''${extraArgs[@]}" "$@"
+                '') // { passthru = { inherit versions mkPkg; }; };
             in
             mkPkg { };
 
@@ -479,7 +473,7 @@ with builtins; let
           ownPkgs.spl-token
           ownPkgs.solana-cli
           ownPkgs.anchor-cli
-          ownPkgs.cargo-build-sbf
+          ownPkgs.cargo-build-sbf-wrapper
           # ownPkgs.anchor-cli-binary
           # ownPkgs.avm
           pkgs.surfpool
