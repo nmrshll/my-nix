@@ -111,7 +111,7 @@ with builtins; let
                     LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
                     OPENSSL_NO_VENDOR = 1;
                   };
-                  cargoArtifacts = craneLib.buildDepsOnly (commonArgs);
+                  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
                 in
                 craneLib.buildPackage (commonArgs // {
                   inherit cargoArtifacts;
@@ -213,6 +213,83 @@ with builtins; let
             in
             mkPkg { };
 
+          avm =
+            let
+              baseUrl = "https://anchor-releases.s3-eu-west-1.amazonaws.com";
+              versions."nightly-20260701-abe3cb9" = {
+                aarch64-darwin = "sha256-5731bbb5cbf812a83c4ea53ed759d6c8df325ac568bc9a87c702d97fe015918c";
+                x86_64-darwin = "sha256-e93879b18958009bf56e6f1d42c878dd62d506f773b91fd18d1e390a18cbfcd4";
+                x86_64-linux = "sha256-b51f9ea3f7891a01148424054a54ca5fc868053178c8c7a99f9f6d6995c7cfea";
+              };
+              mapSystem = {
+                aarch64-darwin = "aarch64-apple-darwin";
+                x86_64-darwin = "x86_64-apple-darwin";
+                x86_64-linux = "x86_64-unknown-linux-gnu";
+              };
+              mkPkg = { version ? "nightly-20260701-abe3cb9" }:
+                let
+                  v = versions.${version};
+                  sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
+                in
+                pkgs.stdenv.mkDerivation {
+                  pname = "avm";
+                  inherit version;
+                  src = pkgs.fetchurl {
+                    url = "${baseUrl}/nightly/latest/${sysStr}/avm.tar.gz";
+                    sha256 = v.${pkgs.stdenv.hostPlatform.system};
+                  };
+                  nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
+                  buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+                  dontBuild = true;
+                  installPhase = ''
+                    mkdir -p $out/bin
+                    tar -xzf $src --strip-components=0 -C $out/bin
+                    chmod +x $out/bin/avm
+                  '';
+                  passthru = { inherit versions mkPkg; };
+                  meta.mainProgram = "avm";
+                };
+            in
+            mkPkg { };
+
+          # anchor-cli-binary =
+          #   let
+          #     versions."nightly-20260701-abe3cb9" = {
+          #       aarch64-darwin = "sha256-cd620b7c307d04b3a7e177b0ed5e262b83664f72fbd7217f83847f7f3f38fb63";
+          #       x86_64-darwin = "sha256-7021e42a2f4d9df59e2833ebbd881ae1ee06bc7cd951f01c2becf3e9650c18b2";
+          #       x86_64-linux = "sha256-3c6c2b605703b81ac57ee0ba3b20510f68dee6cc5f588e95da91434745b7a734";
+          #     };
+          #     mapSystem = {
+          #       aarch64-darwin = "aarch64-apple-darwin";
+          #       x86_64-darwin = "x86_64-apple-darwin";
+          #       x86_64-linux = "x86_64-unknown-linux-gnu";
+          #     };
+          #     mkPkg = { version ? "nightly-20260701-abe3cb9" }:
+          #       let
+          #         v = versions.${version};
+          #         sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
+          #       in
+          #       pkgs.stdenv.mkDerivation {
+          #         pname = "anchor";
+          #         inherit version;
+          #         src = pkgs.fetchurl {
+          #           url = "https://anchor-releases.s3-eu-west-1.amazonaws.com/nightly/latest/${sysStr}/anchor.tar.gz";
+          #           sha256 = v.${pkgs.stdenv.hostPlatform.system};
+          #         };
+          #         nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
+          #         buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+          #         dontBuild = true;
+          #         installPhase = ''
+          #           mkdir -p $out/bin
+          #           tar -xzf $src --strip-components=0 -C $out/bin
+          #           chmod +x $out/bin/anchor
+          #         '';
+          #         passthru = { inherit versions mkPkg; };
+          #         meta.mainProgram = "anchor";
+          #       };
+          #   in
+          #   mkPkg { };
+
 
           platform-tools =
             let
@@ -291,7 +368,7 @@ with builtins; let
                 let
                   v = versions.${version};
                   solanaCrates = if solanaPkgs != null then solanaPkgs else [
-                    "cargo-build-sbf"
+                    # "cargo-build-sbf"
                     "cargo-test-sbf"
                     "solana"
                     "solana-bench-tps"
@@ -402,6 +479,9 @@ with builtins; let
           ownPkgs.spl-token
           ownPkgs.solana-cli
           ownPkgs.anchor-cli
+          ownPkgs.cargo-build-sbf
+          # ownPkgs.anchor-cli-binary
+          # ownPkgs.avm
           pkgs.surfpool
         ] ++ (attrValues scripts);
       };
