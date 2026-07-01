@@ -75,6 +75,11 @@ with builtins; let
                     src = ownPkgs.agave-src.mkPkg { inherit version; };
                     phases = [ "unpackPhase" "patchPhase" "installPhase" ];
                     patches = [ ../pkgs/cargo-build-sbf-main.patch ];
+                    postPatch = ''
+                      # Remove empty client-test workspace member (cargo 1.95+ rejects it)
+                      sed -i '/"client-test"/d' Cargo.toml
+                      rm -rf client-test
+                    '';
                     installPhase = ''
                       runHook preInstall
                       mkdir -p $out
@@ -106,7 +111,7 @@ with builtins; let
                     LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
                     OPENSSL_NO_VENDOR = 1;
                   };
-                  cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { dummySrc = srcPatched; });
+                  cargoArtifacts = craneLib.buildDepsOnly (commonArgs);
                 in
                 craneLib.buildPackage (commonArgs // {
                   inherit cargoArtifacts;
@@ -182,8 +187,7 @@ with builtins; let
                     doCheck = false;
                     nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.makeWrapper ];
                     buildInputs = [ ]
-                      ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-                      ++ lib.optional stdenv.isDarwin [ ];
+                      ++ lib.optionals stdenv.isLinux [ pkgs.udev ];
                   };
 
                 in
@@ -398,7 +402,6 @@ with builtins; let
           ownPkgs.spl-token
           ownPkgs.solana-cli
           ownPkgs.anchor-cli
-          ownPkgs.cargo-build-sbf
           pkgs.surfpool
         ] ++ (attrValues scripts);
       };
