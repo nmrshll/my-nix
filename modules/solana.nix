@@ -112,7 +112,7 @@ with builtins; let
                   #   echo "--------------------"
                   # '';
                   patches = [ ../pkgs/cargo-build-sbf-debug-toolchain.patch ];
-                  passthru = { inherit versions mkPkg; };
+                  passthru = { inherit versions mkPkg src; };
                 });
             in
             mkPkg { };
@@ -483,6 +483,24 @@ with builtins; let
           airdrop = ''sol airdrop 2'';
           token = ''spl-token $@ '';
           validator = ''solana-test-validator'';
+
+          capture-cargo-build-sbf-src = ''
+            DEST="$(git rev-parse --show-toplevel)/.cache/cargo-build-sbf-src"
+            mkdir -p "$DEST"
+            cp -r "${ownPkgs.cargo-build-sbf-unwrapped.src}" "$DEST/"
+            echo "Source copied to $DEST"
+          '';
+          diff-build-sbf = ''
+            SRC="$(git rev-parse --show-toplevel)/.cache/cargo-build-sbf-src"
+            if [ ! -d "$SRC" ]; then
+              echo "Run capture-cargo-build-sbf-src first"
+              exit 1
+            fi
+            for f in "$@"; do
+              echo "=== $f ==="
+              diff -u "$SRC/$f" "$f" || true
+            done
+          '';
         };
 
         env = {

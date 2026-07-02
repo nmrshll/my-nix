@@ -1,19 +1,10 @@
 --- a/cargo-build-sbf/src/toolchain.rs
 +++ b/cargo-build-sbf/src/toolchain.rs
-@@ -1,5 +1,6 @@
- use std::path::Path;
- 
-+#[allow(unused)]
- pub fn corrupted_toolchain(platform_tools_dir: &Path) -> bool {
-     let toolchain_path = platform_tools_dir.join("rust");
-     let binaries = toolchain_path.join("bin");
-@@ -8,11 +9,16 @@ pub fn corrupted_toolchain(platform_tools_dir: &Path) -> bool {
+@@ -336,10 +336,19 @@
+     let rustc = binaries.join(if cfg!(windows) { "rustc.exe" } else { "rustc" });
      let cargo = binaries.join(if cfg!(windows) { "cargo.exe" } else { "cargo" });
  
 -    !toolchain_path.try_exists().unwrap_or(false)
--        || !binaries.try_exists().unwrap_or(false)
--        || !rustc.try_exists().unwrap_or(false)
--        || !cargo.try_exists().unwrap_or(false)
 +    eprintln!("[nix-debug] corrupted_toolchain check:");
 +    eprintln!("[nix-debug]   platform_tools_dir = {:?}", platform_tools_dir);
 +    eprintln!("[nix-debug]   toolchain_path     = {:?} exists={}", toolchain_path, toolchain_path.try_exists().unwrap_or(false));
@@ -21,10 +12,13 @@
 +    eprintln!("[nix-debug]   rustc               = {:?} exists={}", rustc, rustc.try_exists().unwrap_or(false));
 +    eprintln!("[nix-debug]   cargo               = {:?} exists={}", cargo, cargo.try_exists().unwrap_or(false));
 +
-+    let corrupted = !toolchain_path.try_exists().unwrap_or(false)
-+        || !binaries.try_exists().unwrap_or(false)
-+        || !rustc.try_exists().unwrap_or(false)
++    let result = !toolchain_path.try_exists().unwrap_or(false)
+         || !binaries.try_exists().unwrap_or(false)
+         || !rustc.try_exists().unwrap_or(false)
+-        || !cargo.try_exists().unwrap_or(false)
 +        || !cargo.try_exists().unwrap_or(false);
-+    eprintln!("[nix-debug]   corrupted = {}", corrupted);
-+    corrupted
++    eprintln!("[nix-debug]   result = {}", result);
++    result
  }
+ 
+ pub fn generate_toolchain_name(requested_toolchain_version: &str) -> String {
