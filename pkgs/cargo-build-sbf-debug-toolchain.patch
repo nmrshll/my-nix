@@ -1,24 +1,12 @@
 --- a/cargo-build-sbf/src/toolchain.rs
 +++ b/cargo-build-sbf/src/toolchain.rs
-@@ -336,10 +336,19 @@
-     let rustc = binaries.join(if cfg!(windows) { "rustc.exe" } else { "rustc" });
-     let cargo = binaries.join(if cfg!(windows) { "cargo.exe" } else { "cargo" });
- 
--    !toolchain_path.try_exists().unwrap_or(false)
-+    eprintln!("[nix-debug] corrupted_toolchain check:");
-+    eprintln!("[nix-debug]   platform_tools_dir = {:?}", platform_tools_dir);
-+    eprintln!("[nix-debug]   toolchain_path     = {:?} exists={}", toolchain_path, toolchain_path.try_exists().unwrap_or(false));
-+    eprintln!("[nix-debug]   binaries            = {:?} exists={}", binaries, binaries.try_exists().unwrap_or(false));
-+    eprintln!("[nix-debug]   rustc               = {:?} exists={}", rustc, rustc.try_exists().unwrap_or(false));
-+    eprintln!("[nix-debug]   cargo               = {:?} exists={}", cargo, cargo.try_exists().unwrap_or(false));
-+
-+    let result = !toolchain_path.try_exists().unwrap_or(false)
-         || !binaries.try_exists().unwrap_or(false)
-         || !rustc.try_exists().unwrap_or(false)
--        || !cargo.try_exists().unwrap_or(false)
-+        || !cargo.try_exists().unwrap_or(false);
-+    eprintln!("[nix-debug]   result = {}", result);
-+    result
+@@ -129,6 +129,9 @@
  }
  
- pub fn generate_toolchain_name(requested_toolchain_version: &str) -> String {
+ pub fn make_platform_tools_path_for_version(version: &str) -> PathBuf {
++    if let Ok(dir) = std::env::var("SOLANA_PLATFORM_TOOLS_DIR") {
++        return PathBuf::from(dir);
++    }
+     home_dir()
+         .join(".cache")
+         .join("solana")

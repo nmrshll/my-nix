@@ -133,14 +133,11 @@ with builtins; let
                   SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
                   PT_DIR="$SBF_SDK_PATH/dependencies/platform-tools"
 
-                  # Diagnostic: check required toolchain paths
                   for p in "$PT_DIR/rust" "$PT_DIR/rust/bin" "$PT_DIR/rust/bin/rustc" "$PT_DIR/rust/bin/cargo"; do
                       if [ ! -e "$p" ]; then
                           echo "ERROR: missing $p"
-                          echo "Contents of $PT_DIR:"
                           ls -la "$PT_DIR/" 2>/dev/null || echo "  (directory does not exist)"
-                          echo "Contents of $PT_DIR/rust/bin:" 2>/dev/null || echo "  rust/bin does not exist"
-                          ls -la "$PT_DIR/rust/bin/" 2>/dev/null || true
+                          ls -la "$PT_DIR/rust/bin/" 2>/dev/null || echo "  rust/bin does not exist"
                           exit 1
                       fi
                   done
@@ -169,6 +166,7 @@ with builtins; let
                       echo "$seen_flags" | grep -qw -- "$flag" || extraArgs+=("$flag")
                   done
                   export SBF_SDK_PATH
+                  export SOLANA_PLATFORM_TOOLS_DIR="$PT_DIR"
                   export RUSTC="$PT_DIR/rust/bin/rustc"
                   exec ${unwrapped}/bin/cargo-build-sbf "''${cleanArgs[@]}" "''${extraArgs[@]}"
                 '') // { passthru = { inherit versions mkPkg; }; };
@@ -485,9 +483,9 @@ with builtins; let
           validator = ''solana-test-validator'';
 
           capture-cargo-build-sbf-src = ''
-            DEST="$(git rev-parse --show-toplevel)/.cache/cargo-build-sbf-src"
+            DEST="$(git rev-parse --show-toplevel)/patch/cargo-build-sbf"
             mkdir -p "$DEST"
-            cp -r "${ownPkgs.cargo-build-sbf-unwrapped.src}" "$DEST/"
+            cp -r "${ownPkgs.cargo-build-sbf-unwrapped.src}/cargo-build-sbf" "$DEST/"
             echo "Source copied to $DEST"
           '';
           diff-build-sbf = ''
