@@ -104,6 +104,14 @@ with builtins; let
                 in
                 craneLib.buildPackage (commonArgs // {
                   inherit cargoArtifacts;
+                  # preBuild = ''
+                  #   echo "--- Source Tree ---"
+                  #   # ${pkgs.tree}/bin/tree -a -L 4 .
+                  #   cat ./cargo-build-sbf/src/bin/build_sbf.rs
+                  #   exit 1
+                  #   echo "--------------------"
+                  # '';
+                  patches = [ ../pkgs/cargo-build-sbf-debug-toolchain.patch ];
                   passthru = { inherit versions mkPkg; };
                 });
             in
@@ -122,23 +130,47 @@ with builtins; let
                 in
                 (pkgs.writeShellScriptBin "cargo-build-sbf" ''
                   set -x
+                  SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
+                  PT_DIR="$SBF_SDK_PATH/dependencies/platform-tools"
+
+                  # Diagnostic: check required toolchain paths
+                  for p in "$PT_DIR/rust" "$PT_DIR/rust/bin" "$PT_DIR/rust/bin/rustc" "$PT_DIR/rust/bin/cargo"; do
+                      if [ ! -e "$p" ]; then
+                          echo "ERROR: missing $p"
+                          echo "Contents of $PT_DIR:"
+                          ls -la "$PT_DIR/" 2>/dev/null || echo "  (directory does not exist)"
+                          echo "Contents of $PT_DIR/rust/bin:" 2>/dev/null || echo "  rust/bin does not exist"
+                          ls -la "$PT_DIR/rust/bin/" 2>/dev/null || true
+                          exit 1
+                      fi
+                  done
+
                   required_flags=( "--no-rustup-override" "--skip-tools-install" )
                   seen_flags=""
                   extraArgs=()
+                  cleanArgs=()
                   for arg in "$@"; do
+                      if [ "$arg" = "build-sbf" ]; then
+                          continue
+                      fi
+                      found=0
                       for flag in "''${required_flags[@]}"; do
                           if [ "$arg" = "$flag" ]; then
                               seen_flags="$seen_flags $flag"
+                              found=1
                               break
                           fi
                       done
+                      if [ "$found" = "0" ]; then
+                          cleanArgs+=("$arg")
+                      fi
                   done
                   for flag in "''${required_flags[@]}"; do
-                      echo "$seen_flags" | grep -qw "$flag" || extraArgs+=("$flag")
+                      echo "$seen_flags" | grep -qw -- "$flag" || extraArgs+=("$flag")
                   done
-                  export SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
-                  export RUSTC="${platform-tools}/bin/platform-tools-sdk/sbf/dependencies/platform-tools/rust/bin/rustc"
-                  exec ${unwrapped}/bin/cargo-build-sbf "''${extraArgs[@]}" "$@"
+                  export SBF_SDK_PATH
+                  export RUSTC="$PT_DIR/rust/bin/rustc"
+                  exec ${unwrapped}/bin/cargo-build-sbf "''${cleanArgs[@]}" "''${extraArgs[@]}"
                 '') // { passthru = { inherit versions mkPkg; }; };
             in
             mkPkg { };
