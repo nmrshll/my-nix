@@ -104,14 +104,8 @@ with builtins; let
                 in
                 craneLib.buildPackage (commonArgs // {
                   inherit cargoArtifacts;
-                  # preBuild = ''
-                  #   echo "--- Source Tree ---"
-                  #   # ${pkgs.tree}/bin/tree -a -L 4 .
-                  #   cat ./cargo-build-sbf/src/bin/build_sbf.rs
-                  #   exit 1
-                  #   echo "--------------------"
-                  # '';
-                  patches = [ ../pkgs/cargo-build-sbf-debug-toolchain.patch ];
+                  # preBuild = '' ${pkgs.tree}/bin/tree -a -L 4 . '';
+                  patches = [ ../pkgs/cargo-build-sbf_4.1+.patch ];
                   passthru = { inherit versions mkPkg src; };
                 });
             in
