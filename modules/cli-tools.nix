@@ -14,17 +14,17 @@
         #   fi
         # '';
 
-        wd = "$(git rev-parse --show-toplevel)";
-        scripts = l.mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
-          dotenv = ''WD=${wd}
-          if [ -f "$WD/.env" ]; then
-              source "$WD/.env";
-              case "$(uname -s)" in
-                  Linux*)     export $(grep -v '^#' .env | xargs) ;;
-                  Darwin*)    export `cat "$WD/.env" | grep -v -e '^#' -e '^[[:space:]]*$' | cut -d= -f1` ;;
-              esac
-          fi
-        '';
+        bash.wd = "$(git rev-parse --show-toplevel)";
+        scripts = with bash; l.mapAttrs pkgs.writeShellScriptBin {
+          dotenv = ''
+            if [ -f "${wd}/.env" ]; then
+                source "${wd}/.env";
+                case "$(uname -s)" in
+                    Linux*)     export $(grep -v '^#' "${wd}/.env" | xargs) ;;
+                    Darwin*)    vars="$(grep -v -e '^#' -e '^[[:space:]]*$' "${wd}/.env" | cut -d= -f1)"; [ -n "$vars" ] && export $vars; true ;;
+                esac
+            fi
+          '';
 
           setdotenv = ''
             if [ -f "${wd}/.env" ] && [ ! -L "${wd}/.env" ]; then
