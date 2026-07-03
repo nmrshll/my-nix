@@ -296,7 +296,7 @@ with builtins; let
                   src = pkgs.fetchurl {
                     url = "https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-${sysStr}";
                     # url = "https://anchor-releases.s3-eu-west-1.amazonaws.com/nightly/latest/${sysStr}/anchor.tar.gz";
-                    sha256 = v.${pkgs.stdenv.hostPlatform.system};
+                    sha256 = v.${pkgs.stdenv.hostPlatform.system}.sha256;
                   };
                   dontUnpack = true;
                   nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
