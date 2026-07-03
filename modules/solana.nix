@@ -176,7 +176,13 @@ with builtins; let
                 platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = "1.45"; };
                 patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
               };
-              mkPkg = { version ? "0.31.1" }:
+              versions."1.1.2" = {
+                sha256 = "";
+                rust-nightly = pkgs.rust-bin.nightly.latest.minimal;
+                platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = "1.54"; };
+                patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
+              };
+              mkPkg = { version ? "1.1.2" }:
                 let
                   v = versions.${version};
                   pname = "anchor-cli";
@@ -234,11 +240,11 @@ with builtins; let
           avm =
             let
               baseUrl = "https://anchor-releases.s3-eu-west-1.amazonaws.com";
-              versions."nightly-20260701-abe3cb9" = {
-                aarch64-darwin = "sha256-5731bbb5cbf812a83c4ea53ed759d6c8df325ac568bc9a87c702d97fe015918c";
-                x86_64-darwin = "sha256-e93879b18958009bf56e6f1d42c878dd62d506f773b91fd18d1e390a18cbfcd4";
-                x86_64-linux = "sha256-b51f9ea3f7891a01148424054a54ca5fc868053178c8c7a99f9f6d6995c7cfea";
-              };
+              # versions."nightly-20260701-abe3cb9" = {
+              #   aarch64-darwin = "sha256-5731bbb5cbf812a83c4ea53ed759d6c8df325ac568bc9a87c702d97fe015918c";
+              #   x86_64-darwin = "sha256-e93879b18958009bf56e6f1d42c878dd62d506f773b91fd18d1e390a18cbfcd4";
+              #   x86_64-linux = "sha256-b51f9ea3f7891a01148424054a54ca5fc868053178c8c7a99f9f6d6995c7cfea";
+              # };
               mapSystem = {
                 aarch64-darwin = "aarch64-apple-darwin";
                 x86_64-darwin = "x86_64-apple-darwin";
@@ -270,43 +276,42 @@ with builtins; let
             in
             mkPkg { };
 
-          # anchor-cli-binary =
-          #   let
-          #     versions."nightly-20260701-abe3cb9" = {
-          #       aarch64-darwin = "sha256-cd620b7c307d04b3a7e177b0ed5e262b83664f72fbd7217f83847f7f3f38fb63";
-          #       x86_64-darwin = "sha256-7021e42a2f4d9df59e2833ebbd881ae1ee06bc7cd951f01c2becf3e9650c18b2";
-          #       x86_64-linux = "sha256-3c6c2b605703b81ac57ee0ba3b20510f68dee6cc5f588e95da91434745b7a734";
-          #     };
-          #     mapSystem = {
-          #       aarch64-darwin = "aarch64-apple-darwin";
-          #       x86_64-darwin = "x86_64-apple-darwin";
-          #       x86_64-linux = "x86_64-unknown-linux-gnu";
-          #     };
-          #     mkPkg = { version ? "nightly-20260701-abe3cb9" }:
-          #       let
-          #         v = versions.${version};
-          #         sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
-          #       in
-          #       pkgs.stdenv.mkDerivation {
-          #         pname = "anchor";
-          #         inherit version;
-          #         src = pkgs.fetchurl {
-          #           url = "https://anchor-releases.s3-eu-west-1.amazonaws.com/nightly/latest/${sysStr}/anchor.tar.gz";
-          #           sha256 = v.${pkgs.stdenv.hostPlatform.system};
-          #         };
-          #         nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-          #         buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
-          #         dontBuild = true;
-          #         installPhase = ''
-          #           mkdir -p $out/bin
-          #           tar -xzf $src --strip-components=0 -C $out/bin
-          #           chmod +x $out/bin/anchor
-          #         '';
-          #         passthru = { inherit versions mkPkg; };
-          #         meta.mainProgram = "anchor";
-          #       };
-          #   in
-          #   mkPkg { };
+          anchor-cli-binary =
+            let
+              versions."1.1.2".aarch64-darwin.sha256 = "sha256-ZOZKdB16jwmwVe/l1E6QBZz0593SJa7pU1SVhQWvf0o=";
+
+              mapSystem = {
+                aarch64-darwin = "aarch64-apple-darwin";
+                x86_64-darwin = "x86_64-apple-darwin";
+                x86_64-linux = "x86_64-unknown-linux-gnu";
+              };
+              mkPkg = { version ? "1.1.2" }:
+                let
+                  v = versions.${version};
+                  sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
+                in
+                pkgs.stdenv.mkDerivation {
+                  pname = "anchor";
+                  inherit version;
+                  src = pkgs.fetchurl {
+                    url = "https://github.com/otter-sec/anchor/releases/download/v1.1.2/anchor-1.1.2-${sysStr}";
+                    # url = "https://anchor-releases.s3-eu-west-1.amazonaws.com/nightly/latest/${sysStr}/anchor.tar.gz";
+                    sha256 = v.${pkgs.stdenv.hostPlatform.system};
+                  };
+                  dontUnpack = true;
+                  nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
+                  buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+                  dontBuild = true;
+                  installPhase = ''
+                    mkdir -p $out/bin
+                    cp $src $out/bin/anchor
+                    chmod +x $out/bin/anchor
+                  '';
+                  passthru = { inherit versions mkPkg; };
+                  meta.mainProgram = "anchor";
+                };
+            in
+            mkPkg { };
 
 
           platform-tools =
@@ -514,7 +519,7 @@ with builtins; let
         myDevShell.buildInputs = buildInputs ++ [
           ownPkgs.spl-token
           ownPkgs.solana-cli
-          ownPkgs.anchor-cli
+          ownPkgs.anchor-cli-binary
           ownPkgs.cargo-build-sbf-wrapper
           # ownPkgs.anchor-cli-binary
           # ownPkgs.avm
