@@ -41,9 +41,84 @@
               *) echo "$1 is not a supported environment. Environments supported are [\"none\", \"local\", \"remote-dev\", \"uat\"]" >&2; exit 1
             esac
           '';
-          # reload-nix = writeScriptBin "reload-nix" ''
-          #   nix flake lock --update-input scriptUtils && direnv allow
-          # '';
+
+          env-switch = ''
+            ROOT="$(git rev-parse --show-toplevel)"
+            ENV_DIR="$ROOT/.envs"
+            ENV_FILE="$ROOT/.env"
+
+            backup_real_file() {
+              if [ -f "$ENV_FILE" ] && [ ! -L "$ENV_FILE" ]; then
+                mkdir -p "$ROOT/infra"
+                mv "$ENV_FILE" "$ROOT/infra/.env.bak.$(date +%Y%m%d%H%M%S)"
+              fi
+            }
+
+            current_env_name() {
+              if [ -L "$ENV_FILE" ]; then
+                basename "$(readlink "$ENV_FILE")" .env
+              else
+                echo "(none)"
+              fi
+            }
+
+            case "''${1:-}" in
+              --list|-l)
+                [ ! -d "$ENV_DIR" ] && echo "No .envs/ directory." && exit 0
+                echo "Available environments:"
+                for f in "$ENV_DIR"/*.env; do
+                  [ ! -f "$f" ] && continue
+                  [ "$(basename "$f")" = "_shared.env" ] && continue
+                  name="$(basename "$f" .env)"
+                  marker="  "
+                  [ -L "$ENV_FILE" ] && [ "$(readlink "$ENV_FILE")" = "$f" ] && marker="* "
+                  echo "''${marker}$name"
+                done
+                ;;
+              --get|-g)
+                current_env_name
+                ;;
+              "")
+                current_env_name
+                ;;
+              *)
+                NAME="$1"
+                TARGET="$ENV_DIR/$NAME.env"
+                if [ ! -f "$TARGET" ]; then
+                  echo "Error: .envs/$NAME.env does not exist" >&2
+                  exit 1
+                fi
+                backup_real_file
+                SHARED="$ENV_DIR/_shared.env"
+                if [ -f "$SHARED" ]; then
+                  tmp="$(mktemp)"
+                  if grep -q '# --- shared ---' "$TARGET"; then
+                    awk -v sf="$SHARED" '
+                      /^# --- shared ---$/ { print; while((getline line < sf) > 0) print line; skip=1; next }
+                      /^# --- end shared ---$/ { print; skip=0; next }
+                      !skip
+                    ' "$TARGET" > "$tmp"
+                  else
+                    { echo "# --- shared ---"; cat "$SHARED"; echo "# --- end shared ---"; cat "$TARGET"; } > "$tmp"
+                  fi
+                  mv "$tmp" "$TARGET"
+                fi
+                ln -sf "$TARGET" "$ENV_FILE"
+                echo "Switched to $NAME"
+                ;;
+            esac
+          '';
+          env-shared = ''
+            SHARED="$(git rev-parse --show-toplevel)/.envs/_shared.env"
+            if [ ! -f "$SHARED" ]; then
+              echo "No shared env found. Create .envs/_shared.env first."
+              exit 1
+            fi
+            cat "$SHARED"
+          '';
+
+
+
 
           # TMUX / ZELLIJ (TODO import)
           respawn_tmux = ''
@@ -82,6 +157,9 @@
           nup = ''set -x; nix flake update --show-trace --refresh --no-eval-cache $NIX_OVERRIDES'';
           ncheck = ''set -x; nix flake check --impure --show-trace . $NIX_OVERRIDES'';
           nclean = ''rm -rf result/ '';
+          # reload-nix = writeScriptBin "reload-nix" ''
+          #   nix flake lock --update-input scriptUtils && direnv allow
+          # '';
         };
 
       in
