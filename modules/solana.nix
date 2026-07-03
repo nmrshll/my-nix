@@ -114,7 +114,7 @@ with builtins; let
           cargo-build-sbf-wrapper =
             let
               versions = {
-                "4.1.0" = { platform-tools-version = "1.52"; };
+                "4.1.0" = { platform-tools-version = "1.54"; };
               };
               mkPkg = { version ? "4.1.0" }:
                 let
@@ -321,10 +321,10 @@ with builtins; let
                 "1.45".aarch64-linux.sha256 = "sha256-UzOekFBdjtHJzzytmkQETd6Mrb+cdAsbZBA0kzc75Ws=";
                 "1.45".x86_64-darwin.sha256 = "sha256-EE7nVJ+8a/snx4ea7U+zexU/vTMX16WoU5Kbv5t2vN8=";
                 "1.45".aarch64-darwin.sha256 = "sha256-aJjYD4vhsLcBMAC8hXrecrMvyzbkas9VNF9nnNxtbiE=";
-                # "1.52".x86_64-linux.sha256 = "";
                 "1.52".aarch64-darwin.sha256 = "sha256-+seEpShbkN87ECsL7XeMF8oixqqLtO9aR2lmc+qssSY=";
+                "1.54".aarch64-darwin.sha256 = "sha256-tqsZQNPSTeCmZXbw/NwvDNodO0FbVJXx51yO+YsN3ag=";
               };
-              mkPkg = { version ? "1.52" }:
+              mkPkg = { version ? "1.54" }:
                 let
                   v = versions.${version}.${pkgs.stdenv.hostPlatform.system};
                   agaveSrc = ownPkgs.agave-src.mkPkg { version = "2.2.3"; };
