@@ -316,11 +316,11 @@
                       plugin location="zellij:status-bar"
                   }
                 }
-                ${l.concatStringsSep "\n" (l.imap0 (i: cmd: ''
-                  tab name="${l.strings.substring 0 20 cmd}" {
-                    pane command="${mkCmd cmd}"
+                ${l.concatStringsSep "\n" (map (entry: ''
+                  tab name="${entry.name or (l.strings.substring 0 20 entry.command)}" {
+                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}"
                   }
-                '') commands)}
+                '') commandSet)}
               }
             '';
             layout = pkgs.writeText "layout.kdl" layoutContent;
