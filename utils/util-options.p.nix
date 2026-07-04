@@ -34,7 +34,7 @@ with builtins; let
   # # This module lets flakeModules add packages to expose as outputs of this flake, but not consumer flakes.
   # TODO local/exposed version of all outputs
   flakeModules.exposePkgs = { self, ... }: {
-    config.perSystem = { config, l, ... }: {
+    config.perSystem = { l, ... }: {
       options.expose.packages = l.mkOption { type = l.types.nestedAttrs l.types.package; default = { }; };
     };
   };
@@ -44,6 +44,11 @@ with builtins; let
     option = lib.mkOption { type = lib.types.lazyAttrsOf lib.types.str; /* default = { }; */ };
     file = ./util-options.nix;
   };
+  # flakeModules.perSystemLib = { lib, flake-parts-lib, ... }: flake-parts-lib.mkTransposedPerSystemModule {
+  #   name = "lib";
+  #   option = lib.mkOption { type = lib.types.lazyAttrsOf lib.types.unspecified; /* default = { }; */ };
+  #   file = ./util-options.nix;
+  # };
   # flakeModules.bin = { lib, ... }: {
   #   perSystem = { ... }: {
   #     options.bin = lib.mkOption { type = lib.types.attrsOf lib.types.str; default = { }; };
@@ -63,7 +68,7 @@ with builtins; let
       ../pkgs/service-pkgs.nix
     ];
 
-    config.perSystem = { pkgs, l, lib, inputs', system, ... }: with builtins; let
+    config.perSystem = { pkgs, l, system, /*inputs',*/ /*lib,*/ ... }: with builtins; let
       # # TODO figure out env-based overrides
       # mkExtraInput = overridePath: defaultSrc:
       #   if overridePath != "" && pathExists overridePath
@@ -120,7 +125,7 @@ with builtins; let
   };
 
   # let any module extend the flakeModule/perSystem lib arg
-  flakeModules.extraLib = { config, lib, flake-parts-lib, inputs, ... }: {
+  flakeModules.extraLib = { config, lib, /*flake-parts-lib, inputs,*/ ... }: {
     # imports = [
     #   # TODO does this let other modules set flake.lib.${system} ??
     #   (flake-parts-lib.mkTransposedPerSystemModule {
@@ -153,7 +158,7 @@ with builtins; let
     # options.flake.lib = lib.mkOption { type = lib.types.lazyAttrsOf lib.types.str; default = { }; };
     # lib = config.lib;
 
-    config.perSystem = { config, lib, pkgs, ... }: {
+    config.perSystem = { config, lib, ... }: {
       # _module.args.lib = lib // config.lib;
       options.extraLib = lib.mkOption {
         type = lib.types.anything // {
@@ -173,7 +178,7 @@ with builtins; let
     };
   };
 
-  flakeModules.moduleTypes = { config, l, ... }: {
+  flakeModules.moduleTypes = { l, ... }: {
     options.flakeModules = l.mkOption { type = l.types.lazyAttrsOf l.types.unspecified; default = { }; };
     options.flake.flakeModules = l.mkOption { type = l.types.lazyAttrsOf l.types.unspecified; default = { }; };
     # config.flake.flakeModules = (l.deepMergeSetList [

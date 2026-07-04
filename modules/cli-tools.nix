@@ -160,14 +160,219 @@
           # reload-nix = writeScriptBin "reload-nix" ''
           #   nix flake lock --update-input scriptUtils && direnv allow
           # '';
+
+
+          # zmux = ''
+          #   #!/usr/bin/env bash
+          #   # Usage: zellij-multi "command1" "command2" ...
+
+          #   set -e
+
+          #   if [ $# -eq 0 ]; then
+          #       echo "Usage: $0 <command> [command...]"
+          #       exit 1
+          #   fi
+
+          #   # Clean up temporary files on exit
+          #   cleanup() {
+          #       rm -f "$config_file" "$layout_file"
+          #   }
+          #   trap cleanup EXIT
+
+          #   config_file=$(mktemp)
+          #   layout_file=$(mktemp)
+
+          #   # Write minimal config to suppress startup tips
+          #   cat > "$config_file" <<EOF
+          #   show_startup_tips false
+          #   show_release_notes false
+          #   EOF
+
+          #   # Start building the layout
+          #   cat > "$layout_file" <<EOF
+          #   layout {
+          #       default_tab_template {
+          #           pane size=20 position="left" borderless=true {
+          #               plugin location="zellij:tab-bar" {
+          #                   position "left"
+          #               }
+          #           }
+          #           children
+          #       }
+          #   EOF
+
+          #   # Escape a string for use inside a KDL double‑quoted string
+          #   escape_kdl() {
+          #       local str="$1"
+          #       str="$${str//\\/\\\\}"   # escape backslashes
+          #       str="$${str//\"/\\\"}"   # escape double quotes
+          #       printf "%s" "$str"
+          #   }
+
+          #   # Generate one tab per command
+          #   tab_index=1
+          #   for cmd in "$@"; do
+          #       escaped_cmd=$(escape_kdl "$cmd")
+          #       # Use a short version of the command as the tab name
+          #       tab_name="$${cmd:0:20}"
+          #       # Remove any quotes that might break KDL
+          #       tab_name="$${tab_name//\"/}"
+          #       # If the command is empty, use a generic name
+          #       [ -z "$tab_name" ] && tab_name="cmd$tab_index"
+
+          #       cat >> "$layout_file" <<EOF
+          #       tab name="$tab_name" {
+          #           pane command="$${SHELL}" args "-c" "$escaped_cmd"
+          #   }
+          #   EOF
+          #   ((tab_index++))
+          #   done
+
+          #   echo "}" >> "$layout_file"
+
+          #   # Launch Zellij with the generated config and layout
+          #   zellij --config "$config_file" --new-session-with-layout "$layout_file"
+          # '';
+
+
         };
+
+
+
+        mkZmux = commandSet:
+          let
+            # escape = str: builtins.replaceStrings [ "\\" "\"" ] [ "\\\\" "\\\"" ] str;
+            # pane size=20 borderless=true {
+            #   plugin location="zellij:tab-bar" {
+            #     position "left"
+            #   }
+            # }
+            # layout {
+            #   default_tab_template {
+            #     pane split_direction="Vertical" {
+            #         pane size="15%" {
+            #             plugin location="zellij:tab-bar" {
+            #               position "left"
+            #             }
+            #         }
+            #         children
+            #     }
+            #   }
+            #   ${l.concatStringsSep "\n" (l.imap0 (i: cmd: ''
+            #     tab name="${l.strings.substring 0 20 cmd}" {
+            #       pane command="${mkCmd cmd}"
+            #     }
+            #   '') commands)}
+            # }
+            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" ''${cmd}'')}/bin/cmd";
+            # keybindsCfg = ''
+            #   keybinds {
+            #       shared {
+            #           // Toggle selectability (for resizing the pane)
+            #           bind "Alt s" {
+            #               MessagePlugin "file:${verticalTabsPlugin}" {
+            #                   name "toggle_selectable"
+            #               }
+            #           }
+            #       }
+            #   }
+            # '';
+            verticalTabsPlugin = pkgs.fetchurl {
+              url = "https://github.com/cfal/zellij-vertical-tabs/releases/download/v0.1.0/zellij-vertical-tabs.wasm";
+              sha256 = "sha256-UxCRtWqzvAAIvRTeGfcZheOrhYURDuAh747kE1ViAqI=";
+            };
+            layoutContent = ''
+              keybinds {
+                  shared {
+                      // Toggle selectability (for resizing the pane)
+                      bind "Alt s" {
+                          MessagePlugin "file:${verticalTabsPlugin}" {
+                              name "toggle_selectable"
+                          }
+                      }
+                  }
+                  shared_except "locked" {
+                    bind "Alt up" { GoToPreviousTab; }
+                    bind "Alt down" { GoToNextTab; }
+                  }
+              }
+              layout {
+                default_tab_template {
+                  pane split_direction="vertical" {
+                      pane size=18 borderless=true {
+                          plugin location="file:${verticalTabsPlugin}" {
+                              // Colorful style with custom indicators
+                              format "#[fg=muted]{index} #[fg=none]{name}"
+                              format_active "#[fg=accent]▶ {index} {name} #[fg=success]{indicators}"
+                              indicator_active "●"
+                              indicator_fullscreen "□"
+                              indicator_sync "⇄"
+                              max_name_length 14
+                          }
+                      }
+                      children
+                  }
+                  pane size=1 borderless=true {
+                      plugin location="zellij:status-bar"
+                  }
+                }
+                ${l.concatStringsSep "\n" (l.imap0 (i: cmd: ''
+                  tab name="${l.strings.substring 0 20 cmd}" {
+                    pane command="${mkCmd cmd}"
+                  }
+                '') commands)}
+              }
+            '';
+            layout = pkgs.writeText "layout.kdl" layoutContent;
+            config = pkgs.writeText "config.kdl" ''
+              show_startup_tips false
+              show_release_notes false
+            '';
+          in
+          ''
+            ${mkGrantPermissions verticalTabsPlugin}
+            zellij --config ${config} --new-session-with-layout ${layout}
+          '';
+
+        mkGrantPermissions = wasm_path: ''
+          WASM="$1"
+          PERMS_FILE="$HOME/Library/Caches/org.Zellij-Contributors.Zellij/permissions.kdl"
+          if [ -z "${wasm_path}" ]; then echo "No .wasm at path: ${wasm_path}" >&2 ; exit 1 ; fi
+          mkdir -p "$(dirname "$PERMS_FILE")"
+          if grep -qF "${wasm_path}" "$PERMS_FILE" 2>/dev/null; then
+            echo "Permissions already granted for ${wasm_path}"
+          else
+            cat >> "$PERMS_FILE" <<EOF
+          "${wasm_path}" {
+              ChangeApplicationState
+              ReadApplicationState
+          }
+          EOF
+            echo "Granted permissions for ${wasm_path}"
+          fi
+        '';
+
+        # zellij-vertical-tabs = pkgs.stdenv.mkDerivation {
+        #   pname = "zellij-vertical-tabs";
+        #   version = "0.1.0";
+        #   src = pkgs.fetchurl {
+        #     url = "https://github.com/cfal/zellij-vertical-tabs/releases/download/v0.1.0/zellij-vertical-tabs.wasm";
+        #     sha256 = "sha256-UxChtVqzvACF0U3h+XcZheOrhYURDuAh745ENTVSIqI=";
+        #   };
+        #   dontUnpack = true;
+        #   installPhase = ''
+        #     mkdir -p $out
+        #     cp $src $out/zellij-vertical-tabs.wasm
+        #   '';
+        # };
 
       in
       {
-        inherit bin;
-        expose.packages = scripts;
-        myDevShell.buildInputs = attrValues scripts;
-        myDevShell.shellHooks.dotenv = ''. ${bin.dotenv}'';
+        config.extraLib = { inherit mkZmux; };
+        config.bin = bin;
+        config.expose.packages = scripts;
+        config.myDevShell.buildInputs = attrValues scripts;
+        config.myDevShell.shellHooks.dotenv = ''. ${bin.dotenv}'';
       };
   };
 
