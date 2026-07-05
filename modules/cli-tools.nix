@@ -256,8 +256,9 @@
           pstree2 = ''
             pid=$1; while [ $pid -gt 1 ]; do ps -p $pid -o pid=,ppid=,comm= | awk '{print "  " prev $0; prev="  "}'; pid=$(ps -p $pid -o ppid=); done
           '';
-          pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
+          # pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
           run-net = ''set -x; surfpool start '';
+
           dev = ''rip surfpool; ${mkZmux [
               { name = "surfpool"; command = "${bin.run-net}"; }
               { name = "dev"; command = "npm run dev"; }
@@ -267,6 +268,23 @@
             ps auxww | grep "[s]urfpool"
             ${pkgs.pstree}/bin/pstree $(pgrep surfpool)
           '';
+          hassurf = ''ps auxww | grep "[s]urf" '';
+
+          long = ''for i in {1..1000000}; do
+              echo "Processing number $i"
+              # Simulate heavy work
+              sleep 0.1
+          done'';
+          start = ''
+            set -x
+            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr start "${bin.long}" --name "$(${bin.oxns})-long-loop" --namespace "$(${bin.oxns})"
+            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr logs "long-loop" -f
+          '';
+          stop = ''
+            set -x
+            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop "long-loop"
+          '';
+          oxns = ''printf "${wd}" | md5sum | cut -c1-8'';
         };
 
 
@@ -296,7 +314,7 @@
             #     }
             #   '') commands)}
             # }
-            pidfile = "/tmp/zellij-dev-pids";
+            # pidfile = "/tmp/zellij-dev-pids";
             mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" ''
               echo $$ >> ${pidfile}
               exec ${cmd}
@@ -369,17 +387,10 @@
             '';
           in
           ''
+            set -x
             ${mkGrantPermissions verticalTabsPlugin}
-            rm -f ${pidfile}
             ${pkgs.zellij}/bin/zellij --version
             ${pkgs.zellij}/bin/zellij --config ${config} --new-session-with-layout ${layout}
-            # cat ${pidfile}
-            # xargs -n 1 ps -p < ${pidfile}
-            for pid in $(cat ${pidfile} 2>/dev/null); do
-              ps -p $pid
-              kill -- -$pid 2>/dev/null || true
-            done
-            rm -f ${pidfile}
           '';
 
         mkGrantPermissions = wasm_path: ''
@@ -414,12 +425,17 @@
         #   '';
         # };
 
+        devDeps = [
+          pkgs.own.my-nix.oxmgr
+          pkgs.pstree
+        ];
+
       in
       {
         config.extraLib = { inherit mkZmux; };
         config.bin = bin;
         config.expose.packages = scripts;
-        config.myDevShell.buildInputs = attrValues scripts;
+        config.myDevShell.buildInputs = devDeps ++ (attrValues scripts);
         config.myDevShell.shellHooks.dotenv = ''. ${bin.dotenv}'';
       };
   };

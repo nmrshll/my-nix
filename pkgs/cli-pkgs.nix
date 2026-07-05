@@ -661,4 +661,31 @@
       };
   };
 
+  pkgDefs.oxmgr = rec {
+    versions.aarch64-darwin."0.4.0".sha256 = "0bk9i5l72r83ilg7akdnf2kcfw72xk7yfy7ssz3inagnwyhsr9pv";
+
+    mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        vData = versions.${system}.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+        src = pkgs.fetchFromGitHub {
+          owner = "Vladimir-Urik";
+          repo = "OxMgr";
+          tag = "v${version}";
+          sha256 = vData.sha256;
+        };
+      in
+      pkgs.rustPlatform.buildRustPackage {
+        pname = "oxmgr";
+        inherit src version;
+        cargoLock.lockFile = "${src}/Cargo.lock";
+        doCheck = false;
+        meta = {
+          description = "Lightweight cross-platform process manager written in Rust, a PM2 alternative";
+          homepage = "https://github.com/Vladimir-Urik/OxMgr";
+          license = pkgs.lib.licenses.mit;
+          mainProgram = "oxmgr";
+        };
+      };
+  };
+
 }
