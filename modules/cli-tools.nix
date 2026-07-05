@@ -155,82 +155,8 @@
           nup = ''set -x; nix flake update --show-trace --refresh --no-eval-cache $NIX_OVERRIDES'';
           ncheck = ''set -x; nix flake check --impure --show-trace . $NIX_OVERRIDES'';
           nclean = ''rm -rf result/ '';
-          # reload-nix = writeScriptBin "reload-nix" ''
-          #   nix flake lock --update-input scriptUtils && direnv allow
-          # '';
 
 
-          # zmux = ''
-          #   #!/usr/bin/env bash
-          #   # Usage: zellij-multi "command1" "command2" ...
-
-          #   set -e
-
-          #   if [ $# -eq 0 ]; then
-          #       echo "Usage: $0 <command> [command...]"
-          #       exit 1
-          #   fi
-
-          #   # Clean up temporary files on exit
-          #   cleanup() {
-          #       rm -f "$config_file" "$layout_file"
-          #   }
-          #   trap cleanup EXIT
-
-          #   config_file=$(mktemp)
-          #   layout_file=$(mktemp)
-
-          #   # Write minimal config to suppress startup tips
-          #   cat > "$config_file" <<EOF
-          #   show_startup_tips false
-          #   show_release_notes false
-          #   EOF
-
-          #   # Start building the layout
-          #   cat > "$layout_file" <<EOF
-          #   layout {
-          #       default_tab_template {
-          #           pane size=20 position="left" borderless=true {
-          #               plugin location="zellij:tab-bar" {
-          #                   position "left"
-          #               }
-          #           }
-          #           children
-          #       }
-          #   EOF
-
-          #   # Escape a string for use inside a KDL double‑quoted string
-          #   escape_kdl() {
-          #       local str="$1"
-          #       str="$${str//\\/\\\\}"   # escape backslashes
-          #       str="$${str//\"/\\\"}"   # escape double quotes
-          #       printf "%s" "$str"
-          #   }
-
-          #   # Generate one tab per command
-          #   tab_index=1
-          #   for cmd in "$@"; do
-          #       escaped_cmd=$(escape_kdl "$cmd")
-          #       # Use a short version of the command as the tab name
-          #       tab_name="$${cmd:0:20}"
-          #       # Remove any quotes that might break KDL
-          #       tab_name="$${tab_name//\"/}"
-          #       # If the command is empty, use a generic name
-          #       [ -z "$tab_name" ] && tab_name="cmd$tab_index"
-
-          #       cat >> "$layout_file" <<EOF
-          #       tab name="$tab_name" {
-          #           pane command="$${SHELL}" args "-c" "$escaped_cmd"
-          #   }
-          #   EOF
-          #   ((tab_index++))
-          #   done
-
-          #   echo "}" >> "$layout_file"
-
-          #   # Launch Zellij with the generated config and layout
-          #   zellij --config "$config_file" --new-session-with-layout "$layout_file"
-          # '';
           rip = ''
             case "''${1:-}" in
               --name|-n)
@@ -257,84 +183,66 @@
             pid=$1; while [ $pid -gt 1 ]; do ps -p $pid -o pid=,ppid=,comm= | awk '{print "  " prev $0; prev="  "}'; pid=$(ps -p $pid -o ppid=); done
           '';
           # pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
-          run-net = ''set -x; surfpool start '';
 
-          dev = ''rip surfpool; ${mkZmux [
-              { name = "surfpool"; command = "${bin.run-net}"; }
-              { name = "dev"; command = "npm run dev"; }
-              { name = "logs"; command = "tail -f logs/app.log"; }
-              { command = "watch src/"; } # name auto-derived from command
-            ]}
-            ps auxww | grep "[s]urfpool"
-            ${pkgs.pstree}/bin/pstree $(pgrep surfpool)
-          '';
-          hassurf = ''ps auxww | grep "[s]urf" '';
+          # run-net = ''set -x; surfpool start '';
+          # dev = ''rip surfpool; ${mkZmux [
+          #     { name = "surfpool"; command = "${bin.run-net}"; cleanup = "${bin.rip} surfpool"; }
+          #     { name = "dev"; command = "npm run dev"; }
+          #     { name = "logs"; command = "tail -f logs/app.log"; }
+          #     { command = "watch src/"; } # name auto-derived from command
+          #   ]}
+          # '';
 
-          long = ''for i in {1..1000000}; do
-              echo "Processing number $i"
-              # Simulate heavy work
-              sleep 0.1
-          done'';
-          start = ''
-            set -x
-            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr start "${bin.long}" --name "$(${bin.oxns})-long-loop" --namespace "$(${bin.oxns})"
-            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr logs "long-loop" -f
-          '';
-          stop = ''
-            set -x
-            ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop "long-loop"
-          '';
-          oxns = ''printf "${wd}" | md5sum | cut -c1-8'';
+
+          # long-loop = ''for i in {1..1000000}; do echo "Processing number $i"; sleep 0.1; done'';
+          # start = ''
+          #   set -x
+          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr start "${bin.run-net}" --name "$(${bin.oxns})-long-loop" --namespace "$(${bin.oxns})"
+          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr logs "$(${bin.oxns})-long-loop" -f
+          # '';
+          # stop = ''
+          #   set -x
+          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop "$(${bin.oxns})-long-loop"
+          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr rm "$(${bin.oxns})-long-loop"
+          # '';
+          # oxns = ''printf "${wd}" | md5sum | cut -c1-8'';
+          # stop-all = ''
+          #   set -x
+          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr ls | grep "$(${bin.oxns})" | awk '{print $2}'| xargs ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop
+          # '';
+
+          pc = ''${pkgs.process-compose}/bin/process-compose "$@" '';
         };
 
 
 
         mkZmux = commandSet:
           let
-            # escape = str: builtins.replaceStrings [ "\\" "\"" ] [ "\\\\" "\\\"" ] str;
-            # pane size=20 borderless=true {
-            #   plugin location="zellij:tab-bar" {
-            #     position "left"
-            #   }
-            # }
-            # layout {
-            #   default_tab_template {
-            #     pane split_direction="Vertical" {
-            #         pane size="15%" {
-            #             plugin location="zellij:tab-bar" {
-            #               position "left"
-            #             }
-            #         }
-            #         children
-            #     }
-            #   }
-            #   ${l.concatStringsSep "\n" (l.imap0 (i: cmd: ''
-            #     tab name="${l.strings.substring 0 20 cmd}" {
-            #       pane command="${mkCmd cmd}"
-            #     }
-            #   '') commands)}
-            # }
-            # pidfile = "/tmp/zellij-dev-pids";
-            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" ''
-              echo $$ >> ${pidfile}
-              exec ${cmd}
-            '')}/bin/cmd";
-            # keybindsCfg = ''
-            #   keybinds {
-            #       shared {
-            #           // Toggle selectability (for resizing the pane)
-            #           bind "Alt s" {
-            #               MessagePlugin "file:${verticalTabsPlugin}" {
-            #                   name "toggle_selectable"
-            #               }
-            #           }
-            #       }
-            #   }
-            # '';
+
+            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" cmd)}/bin/cmd";
+
             verticalTabsPlugin = pkgs.fetchurl {
               url = "https://github.com/cfal/zellij-vertical-tabs/releases/download/v0.1.0/zellij-vertical-tabs.wasm";
               sha256 = "sha256-UxCRtWqzvAAIvRTeGfcZheOrhYURDuAh747kE1ViAqI=";
             };
+            mkGrantPluginPermissions = wasm_path: ''
+              WASM="$1"
+              PERMS_FILE="$HOME/Library/Caches/org.Zellij-Contributors.Zellij/permissions.kdl"
+              if [ -z "${wasm_path}" ]; then echo "No .wasm at path: ${wasm_path}" >&2 ; exit 1 ; fi
+              mkdir -p "$(dirname "$PERMS_FILE")"
+              if grep -qF "${wasm_path}" "$PERMS_FILE" 2>/dev/null; then
+                echo "Permissions already granted for ${wasm_path}"
+              else
+                cat >> "$PERMS_FILE" <<EOF
+              "${wasm_path}" {
+                  ChangeApplicationState
+                  ReadApplicationState
+              }
+              EOF
+                echo "Granted permissions for ${wasm_path}"
+              fi
+            '';
+
             layoutContent = ''
               keybinds {
                   shared {
@@ -372,62 +280,34 @@
                 }
                 ${l.concatStringsSep "\n" (map (entry: ''
                   tab name="${entry.name or (l.strings.substring 0 20 entry.command)}" {
-                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}" {
-                    }
+                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}"
                   }
                 '') commandSet)}
               }
             '';
-            # close_on_exit true
             layout = pkgs.writeText "layout.kdl" layoutContent;
             config = pkgs.writeText "config.kdl" ''
               show_startup_tips false
               show_release_notes false
               on_force_close "quit"
             '';
+            cleanup-all = ''            ${l.concatStringsSep "\n" (map (entry:
+              if entry ? cleanup then entry.cleanup else ""
+            ) commandSet)}'';
           in
           ''
+            ${cleanup-all}
+            ${mkGrantPluginPermissions verticalTabsPlugin}
             set -x
-            ${mkGrantPermissions verticalTabsPlugin}
-            ${pkgs.zellij}/bin/zellij --version
             ${pkgs.zellij}/bin/zellij --config ${config} --new-session-with-layout ${layout}
+            ${cleanup-all}
           '';
 
-        mkGrantPermissions = wasm_path: ''
-          WASM="$1"
-          PERMS_FILE="$HOME/Library/Caches/org.Zellij-Contributors.Zellij/permissions.kdl"
-          if [ -z "${wasm_path}" ]; then echo "No .wasm at path: ${wasm_path}" >&2 ; exit 1 ; fi
-          mkdir -p "$(dirname "$PERMS_FILE")"
-          if grep -qF "${wasm_path}" "$PERMS_FILE" 2>/dev/null; then
-            echo "Permissions already granted for ${wasm_path}"
-          else
-            cat >> "$PERMS_FILE" <<EOF
-          "${wasm_path}" {
-              ChangeApplicationState
-              ReadApplicationState
-          }
-          EOF
-            echo "Granted permissions for ${wasm_path}"
-          fi
-        '';
-
-        # zellij-vertical-tabs = pkgs.stdenv.mkDerivation {
-        #   pname = "zellij-vertical-tabs";
-        #   version = "0.1.0";
-        #   src = pkgs.fetchurl {
-        #     url = "https://github.com/cfal/zellij-vertical-tabs/releases/download/v0.1.0/zellij-vertical-tabs.wasm";
-        #     sha256 = "sha256-UxChtVqzvACF0U3h+XcZheOrhYURDuAh745ENTVSIqI=";
-        #   };
-        #   dontUnpack = true;
-        #   installPhase = ''
-        #     mkdir -p $out
-        #     cp $src $out/zellij-vertical-tabs.wasm
-        #   '';
-        # };
 
         devDeps = [
           pkgs.own.my-nix.oxmgr
           pkgs.pstree
+          pkgs.process-compose
         ];
 
       in
