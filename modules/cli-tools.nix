@@ -233,8 +233,27 @@
           #   # Launch Zellij with the generated config and layout
           #   zellij --config "$config_file" --new-session-with-layout "$layout_file"
           # '';
-
-
+          rip = ''
+            case "''${1:-}" in
+              --name|-n)
+                NAME="$2"
+                if [ -z "$${NAME}" ]; then printf "Missing name\n Usage: rip <name>\n"; exit 1; fi
+                pkill -9 -f "$NAME"
+                ;;
+              --port|-p)
+                PORT="$2"
+                if [ -z "$${PORT}" ]; then printf "Missing port\n Usage: rip --port <port>\n"; exit 1; fi
+                kill -9 $(lsof -t -i :"$PORT")
+                ;;
+              *)
+                NAME="$1"
+                if [ -z "$${NAME}" ]; then printf "Missing name\n Usage: rip <name>\n"; exit 1; fi
+                pkill -9 -f "$NAME"
+                printf "ps auxww | grep $NAME :\n"
+                ps auxww | grep "$NAME" | grep -v grep | grep -v "rip $NAME"
+                ;;
+            esac
+          '';
         };
 
 
@@ -318,7 +337,9 @@
                 }
                 ${l.concatStringsSep "\n" (map (entry: ''
                   tab name="${entry.name or (l.strings.substring 0 20 entry.command)}" {
-                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}"
+                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}" {
+                      close_on_exit true
+                    }
                   }
                 '') commandSet)}
               }
