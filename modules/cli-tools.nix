@@ -253,14 +253,19 @@
             esac
           '';
 
-          # run-net = ''set -x; surfpool start '';
-          dev = ''rip surfpool; ps auxww | grep surfpool; ${mkZmux [
-              { name = "surfpool"; command = "surfpool start"; }
+          pstree2 = ''
+            pid=$1; while [ $pid -gt 1 ]; do ps -p $pid -o pid=,ppid=,comm= | awk '{print "  " prev $0; prev="  "}'; pid=$(ps -p $pid -o ppid=); done
+          '';
+          pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
+          run-net = ''set -x; surfpool start '';
+          dev = ''rip surfpool; ${mkZmux [
+              { name = "surfpool"; command = "${bin.run-net}"; }
               { name = "dev"; command = "npm run dev"; }
               { name = "logs"; command = "tail -f logs/app.log"; }
               { command = "watch src/"; } # name auto-derived from command
             ]}
-            ps auxww | grep [s]urfpool
+            ps auxww | grep "[s]urfpool"
+            ${pkgs.pstree}/bin/pstree $(pgrep surfpool)
           '';
         };
 
@@ -291,7 +296,11 @@
             #     }
             #   '') commands)}
             # }
-            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" "exec ${cmd}")}/bin/cmd";
+            pidfile = "/tmp/zellij-dev-pids";
+            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" ''
+              echo $$ >> ${pidfile}
+              exec ${cmd}
+            '')}/bin/cmd";
             # keybindsCfg = ''
             #   keybinds {
             #       shared {
@@ -361,13 +370,16 @@
           in
           ''
             ${mkGrantPermissions verticalTabsPlugin}
+            rm -f ${pidfile}
             ${pkgs.zellij}/bin/zellij --version
             ${pkgs.zellij}/bin/zellij --config ${config} --new-session-with-layout ${layout}
-            ${l.concatStringsSep "\n" (map (entry:
-              let bin = l.head (l.splitString " " entry.command);
-                  name = l.lists.last (l.splitString "/" bin);
-              in ''pkill -x ${name} 2>/dev/null || true''
-            ) commandSet)}
+            # cat ${pidfile}
+            # xargs -n 1 ps -p < ${pidfile}
+            for pid in $(cat ${pidfile} 2>/dev/null); do
+              ps -p $pid
+              kill -- -$pid 2>/dev/null || true
+            done
+            rm -f ${pidfile}
           '';
 
         mkGrantPermissions = wasm_path: ''
