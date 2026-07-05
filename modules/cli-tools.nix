@@ -118,8 +118,6 @@
           '';
 
 
-
-
           # TMUX / ZELLIJ (TODO import)
           respawn_tmux = ''
             ${bin.tmux} kill-session -t session 2>/dev/null
@@ -249,10 +247,20 @@
                 NAME="$1"
                 if [ -z "$${NAME}" ]; then printf "Missing name\n Usage: rip <name>\n"; exit 1; fi
                 pkill -9 -f "$NAME"
-                printf "ps auxww | grep $NAME :\n"
+                printf "Running       ps auxww | grep $NAME \n"
                 ps auxww | grep "$NAME" | grep -v grep | grep -v "rip $NAME"
                 ;;
             esac
+          '';
+
+          # run-net = ''set -x; surfpool start '';
+          dev = ''rip surfpool; ps auxww | grep surfpool; ${mkZmux [
+              { name = "surfpool"; command = "surfpool start"; }
+              { name = "dev"; command = "npm run dev"; }
+              { name = "logs"; command = "tail -f logs/app.log"; }
+              { command = "watch src/"; } # name auto-derived from command
+            ]}
+            ps auxww | grep [s]urfpool
           '';
         };
 
@@ -283,7 +291,7 @@
             #     }
             #   '') commands)}
             # }
-            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" ''${cmd}'')}/bin/cmd";
+            mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" "exec ${cmd}")}/bin/cmd";
             # keybindsCfg = ''
             #   keybinds {
             #       shared {
@@ -338,21 +346,28 @@
                 ${l.concatStringsSep "\n" (map (entry: ''
                   tab name="${entry.name or (l.strings.substring 0 20 entry.command)}" {
                     pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}" {
-                      close_on_exit true
                     }
                   }
                 '') commandSet)}
               }
             '';
+            # close_on_exit true
             layout = pkgs.writeText "layout.kdl" layoutContent;
             config = pkgs.writeText "config.kdl" ''
               show_startup_tips false
               show_release_notes false
+              on_force_close "quit"
             '';
           in
           ''
             ${mkGrantPermissions verticalTabsPlugin}
-            zellij --config ${config} --new-session-with-layout ${layout}
+            ${pkgs.zellij}/bin/zellij --version
+            ${pkgs.zellij}/bin/zellij --config ${config} --new-session-with-layout ${layout}
+            ${l.concatStringsSep "\n" (map (entry:
+              let bin = l.head (l.splitString " " entry.command);
+                  name = l.lists.last (l.splitString "/" bin);
+              in ''pkill -x ${name} 2>/dev/null || true''
+            ) commandSet)}
           '';
 
         mkGrantPermissions = wasm_path: ''
