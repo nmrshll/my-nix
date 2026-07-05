@@ -185,13 +185,13 @@
           # pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
 
           # run-net = ''set -x; surfpool start '';
-          # dev = ''rip surfpool; ${mkZmux [
-          #     { name = "surfpool"; command = "${bin.run-net}"; cleanup = "${bin.rip} surfpool"; }
-          #     { name = "dev"; command = "npm run dev"; }
-          #     { name = "logs"; command = "tail -f logs/app.log"; }
-          #     { command = "watch src/"; } # name auto-derived from command
-          #   ]}
-          # '';
+          dev = ''rip surfpool; ${mkPc [
+              { name = "surfpool"; command = "set -x; surfpool start "; cleanup = "${bin.rip} surfpool"; }
+              { name = "dev"; command = "npm run dev"; }
+              { name = "logs"; command = "tail -f logs/app.log"; }
+              { command = "watch src/"; } # name auto-derived from command
+            ]}
+          '';
 
 
           # long-loop = ''for i in {1..1000000}; do echo "Processing number $i"; sleep 0.1; done'';
@@ -303,6 +303,37 @@
             ${cleanup-all}
           '';
 
+        mkPc = commandSet:
+          let
+            processes = listToAttrs (map
+              (entry:
+                let name = entry.name or (l.strings.substring 0 20 entry.command);
+                in {
+                  inherit name;
+                  value = {
+                    command = entry.command;
+                  };
+                }
+              )
+              commandSet);
+            pcConfig = {
+              version = "0.5";
+              inherit processes;
+            };
+            yaml = pkgs.writeText "process-compose.yaml" (builtins.toJSON pcConfig);
+            cleanup-all = l.concatStringsSep "\n" (map
+              (entry:
+                if entry ? cleanup then entry.cleanup else ""
+              )
+              commandSet);
+          in
+          ''
+            ${cleanup-all}
+            set -x
+            ${pkgs.process-compose}/bin/process-compose up -f ${yaml}
+            ${cleanup-all}
+          '';
+
 
         devDeps = [
           pkgs.own.my-nix.oxmgr
@@ -312,7 +343,7 @@
 
       in
       {
-        config.extraLib = { inherit mkZmux; };
+        config.extraLib = { inherit mkZmux mkPc; };
         config.bin = bin;
         config.expose.packages = scripts;
         config.myDevShell.buildInputs = devDeps ++ (attrValues scripts);
