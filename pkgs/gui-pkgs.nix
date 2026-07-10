@@ -379,4 +379,24 @@
         };
       };
   };
+
+  pkgDefs.frame = rec {
+    versions = {
+      aarch64-darwin."0.30.0".sha256 = "sha256:1b66a4lxbzdyyyzslqkxhsdfm0dzvpkkcgnqqipwiqghff1901zp";
+    };
+    mkPkg = { pkgs, version ? "0.30.0", system ? pkgs.stdenv.hostPlatform.system, ... }:
+      let
+        url = "https://github.com/66HEX/frame/releases/download/${version}/Frame-aarch64.dmg";
+      in
+      pkgs.lib.darwin.installDmg {
+        inherit version url;
+        sha256 = versions.${system}.${version}.sha256;
+        appname = "Frame";
+        meta = {
+          description = "A macOS menu bar utility";
+          homepage = "https://github.com/66HEX/frame";
+          platforms = [ "aarch64-darwin" ];
+        };
+      };
+  };
 }
