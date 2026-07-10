@@ -90,6 +90,10 @@
                 fi
                 backup_real_file
                 SHARED="$ENV_DIR/_shared.env"
+                # save shared from current env before switching
+                if [ -L "$ENV_FILE" ] && [ -f "$ENV_FILE" ] && grep -q '# --- shared ---' "$ENV_FILE"; then
+                  sed -n '/# --- shared ---$/,/# --- end shared ---/{//!p}' "$ENV_FILE" > "$SHARED"
+                fi
                 if [ -f "$SHARED" ]; then
                   tmp="$(mktemp)"
                   if grep -q '# --- shared ---' "$TARGET"; then
