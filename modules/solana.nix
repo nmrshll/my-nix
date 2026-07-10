@@ -123,7 +123,6 @@ with builtins; let
                   platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = v.platform-tools-version; };
                 in
                 (pkgs.writeShellScriptBin "cargo-build-sbf" ''
-                  set -x
                   SBF_SDK_PATH="${platform-tools}/bin/platform-tools-sdk/sbf"
                   PT_DIR="$SBF_SDK_PATH/dependencies/platform-tools"
 
@@ -162,6 +161,7 @@ with builtins; let
                   export SBF_SDK_PATH
                   export SOLANA_PLATFORM_TOOLS_DIR="$PT_DIR"
                   export RUSTC="$PT_DIR/rust/bin/rustc"
+                  set -x
                   exec ${unwrapped}/bin/cargo-build-sbf "''${cleanArgs[@]}" "''${extraArgs[@]}"
                 '') // { passthru = { inherit versions mkPkg; }; };
             in
@@ -480,6 +480,8 @@ with builtins; let
           airdrop = ''sol airdrop 2'';
           token = ''spl-token $@ '';
           validator = ''solana-test-validator'';
+
+          anchor-init = ''anchor init reinit --no-git --no-install --template single --anchor-version v2 --test-template mocha --package-manager yarn  '';
 
           capture-cargo-build-sbf-src = ''
             DEST="$(git rev-parse --show-toplevel)/patch/cargo-build-sbf"
