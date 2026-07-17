@@ -110,7 +110,6 @@ with builtins; let
           # cwadd = ''${pkgs.own.tools.cargo-wadd}/bin/cargo-wadd $@'';
           cadd = ''cargo add $(__cargo-package-args) $@'';
 
-          build = ''nix build . --show-trace '';
           # run = ''cargo run $(__cargo-package-args) $@ '';
           run = ''cargo run $@ '';
           prun = ''cargo run -p "''${@:-$CURRENT_CRATE}" '';
