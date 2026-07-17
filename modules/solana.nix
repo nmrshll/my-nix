@@ -1,5 +1,5 @@
 with builtins; let
-  flakeModules.solana = part@{ config, ... }: {
+  flakeModules.solana = part@{ config, l, ... }: {
     perSystem = { pkgs, lib, ... }:
       let
         crane = part.config.flakeInputsOf.my-nix.crane;
@@ -177,12 +177,12 @@ with builtins; let
                 patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
               };
               versions."1.1.2" = {
-                sha256 = "";
+                sha256 = "sha256-UV5aquH0YqCpex9LDrDdmZmdebhUXKqqsM6X/d2vJIs=";
                 rust-nightly = pkgs.rust-bin.nightly.latest.minimal;
                 platform-tools = ownPkgs.platform-tools.passthru.mkPkg { version = "1.54"; };
-                patches = [ (pkgs.fetchurl { url = "https://raw.githubusercontent.com/arijoon/solana-nix/87bea8cac979d14c758c24d2b9178c44a6e95b39/patches/anchor-cli/0.31.1.patch"; sha256 = "sha256:0w07q4cszg54pf5511qxy9fmj1ywqbmqszjl1hsb56dq3xrpax87"; }) ];
+                patches = [ ];
               };
-              mkPkg = { version ? "1.1.2" }:
+              mkPkg = { version ? (l.latest versions) }:
                 let
                   v = versions.${version};
                   pname = "anchor-cli";
@@ -237,44 +237,44 @@ with builtins; let
             in
             mkPkg { };
 
-          avm =
-            let
-              baseUrl = "https://anchor-releases.s3-eu-west-1.amazonaws.com";
-              # versions."nightly-20260701-abe3cb9" = {
-              #   aarch64-darwin = "sha256-5731bbb5cbf812a83c4ea53ed759d6c8df325ac568bc9a87c702d97fe015918c";
-              #   x86_64-darwin = "sha256-e93879b18958009bf56e6f1d42c878dd62d506f773b91fd18d1e390a18cbfcd4";
-              #   x86_64-linux = "sha256-b51f9ea3f7891a01148424054a54ca5fc868053178c8c7a99f9f6d6995c7cfea";
-              # };
-              mapSystem = {
-                aarch64-darwin = "aarch64-apple-darwin";
-                x86_64-darwin = "x86_64-apple-darwin";
-                x86_64-linux = "x86_64-unknown-linux-gnu";
-              };
-              mkPkg = { version ? "nightly-20260701-abe3cb9" }:
-                let
-                  v = versions.${version};
-                  sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
-                in
-                pkgs.stdenv.mkDerivation {
-                  pname = "avm";
-                  inherit version;
-                  src = pkgs.fetchurl {
-                    url = "${baseUrl}/nightly/latest/${sysStr}/avm.tar.gz";
-                    sha256 = v.${pkgs.stdenv.hostPlatform.system};
-                  };
-                  nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-                  buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
-                  dontBuild = true;
-                  installPhase = ''
-                    mkdir -p $out/bin
-                    tar -xzf $src --strip-components=0 -C $out/bin
-                    chmod +x $out/bin/avm
-                  '';
-                  passthru = { inherit versions mkPkg; };
-                  meta.mainProgram = "avm";
-                };
-            in
-            mkPkg { };
+          # avm =
+          #   let
+          #     baseUrl = "https://anchor-releases.s3-eu-west-1.amazonaws.com";
+          #     versions."nightly-20260701-abe3cb9" = {
+          #       aarch64-darwin = "sha256-5731bbb5cbf812a83c4ea53ed759d6c8df325ac568bc9a87c702d97fe015918c";
+          #       x86_64-darwin = "sha256-e93879b18958009bf56e6f1d42c878dd62d506f773b91fd18d1e390a18cbfcd4";
+          #       x86_64-linux = "sha256-b51f9ea3f7891a01148424054a54ca5fc868053178c8c7a99f9f6d6995c7cfea";
+          #     };
+          #     mapSystem = {
+          #       aarch64-darwin = "aarch64-apple-darwin";
+          #       x86_64-darwin = "x86_64-apple-darwin";
+          #       x86_64-linux = "x86_64-unknown-linux-gnu";
+          #     };
+          #     mkPkg = { version ? "nightly-20260701-abe3cb9" }:
+          #       let
+          #         v = versions.${version};
+          #         sysStr = mapSystem.${pkgs.stdenv.hostPlatform.system};
+          #       in
+          #       pkgs.stdenv.mkDerivation {
+          #         pname = "avm";
+          #         inherit version;
+          #         src = pkgs.fetchurl {
+          #           url = "${baseUrl}/nightly/latest/${sysStr}/avm.tar.gz";
+          #           sha256 = v.${pkgs.stdenv.hostPlatform.system};
+          #         };
+          #         nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
+          #         buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+          #         dontBuild = true;
+          #         installPhase = ''
+          #           mkdir -p $out/bin
+          #           tar -xzf $src --strip-components=0 -C $out/bin
+          #           chmod +x $out/bin/avm
+          #         '';
+          #         passthru = { inherit versions mkPkg; };
+          #         meta.mainProgram = "avm";
+          #       };
+          #   in
+          #   mkPkg { };
 
           anchor-cli-binary =
             let
