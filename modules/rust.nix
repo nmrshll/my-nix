@@ -108,20 +108,24 @@ with builtins; let
           cargo-newbin = ''if [ "$1" = "newbin" ]; then shift; fi; cargo new --bin "$1" --vcs none'';
           cargo-newlib = ''if [ "$1" = "newlib" ]; then shift; fi; cargo new --lib "$1" --vcs none'';
           # cwadd = ''${pkgs.own.tools.cargo-wadd}/bin/cargo-wadd $@'';
-          cadd = ''cargo add $(package_args) $@'';
+          cadd = ''cargo add $(__cargo-package-args) $@'';
 
           build = ''nix build . --show-trace '';
-          # run = ''cargo run $(package_args) $@ '';
+          # run = ''cargo run $(__cargo-package-args) $@ '';
           run = ''cargo run $@ '';
           prun = ''cargo run -p "''${@:-$CURRENT_CRATE}" '';
           pbuild = ''cargo build -p "''${@:-$CURRENT_CRATE}" '';
           # utest = ''cargo nextest run --workspace --nocapture -- $SINGLE_TEST '';
-          rutest = ''set -x; cargo nextest run $(package_args) $(test_filter_args) --nocapture "$@" -- $SINGLE_TEST '';
+          rutest = '' set -x; cargo nextest run $(__cargo-package-args) $(test_filter_args) --nocapture "$@" -- $SINGLE_TEST '';
           test_filter_args = '' [[ -n "$TEST_FILTER" ]] && printf "%s" "--filter-expr $TEST_FILTER" '';
-          package_args = ''if [ -n "$CURRENT_CRATE" ]; then echo "-p $CURRENT_CRATE"; else echo "--workspace"; fi '';
+          __cargo-package-args = ''
+            if [ -n "''${ALL_PKGS+x}" ]; then echo "--workspace"; exit 0; fi
+            if [ -n "$CURRENT_CRATE" ]; then echo "-p $CURRENT_CRATE"; else echo "--workspace"; fi
+          '';
           # rptest = ''package="$1"; shift; cargo nextest run -p "$package" --nocapture "$@" -- "$SINGLE_TEST" '';
           # penv = ''printf "%s\n" "${toJSON config.devShells.default.shellHook}" '';
           # de = ''printf "%s\n" "${pkgs.pkg-config}" '';
+          workspace-members = ''cargo metadata --format-version=1 | jq -r '.workspace_members[] | split("#")[0] | split("/")[-1]' '';
 
           pcheck = ''cargo check -p "''${@:-$CURRENT_CRATE}" '';
         };
