@@ -124,6 +124,19 @@ with builtins; let
     };
   };
 
+  flakeModules.ownPkgs2 = part@{ l, ... }: {
+    imports = [
+      ../pkgs/new-structure.nix
+    ];
+    config.perSystem = perSys@{ pkgs, config, l, system, ... }: {
+      options.ownPkgs = l.mkOption { type = l.types.attrsOf l.types.unspecified; default = { }; };
+      config.pkgs.overlays = [
+        (final: prev: { own = (prev.own or { }) // perSys.config.ownPkgs; })
+      ];
+      config.expose.packages.own = perSys.config.ownPkgs;
+    };
+  };
+
   # let any module extend the flakeModule/perSystem lib arg
   flakeModules.extraLib = { config, lib, /*flake-parts-lib, inputs,*/ ... }: {
     # imports = [
