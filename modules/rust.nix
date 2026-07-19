@@ -115,7 +115,9 @@ with builtins; let
           prun = ''cargo run -p "''${@:-$CURRENT_CRATE}" '';
           pbuild = ''cargo build -p "''${@:-$CURRENT_CRATE}" '';
           # utest = ''cargo nextest run --workspace --nocapture -- $SINGLE_TEST '';
-          rutest = '' set -x; cargo nextest run $(__cargo-package-args) $(test_filter_args) --nocapture "$@" -- $SINGLE_TEST '';
+          rutest = ''
+            if [ "$1" == "--all" ]; then export ALL_PKGS=true; fi
+            set -x; cargo nextest run $(__cargo-package-args) $(test_filter_args) --nocapture "$@" -- $SINGLE_TEST '';
           test_filter_args = '' [[ -n "$TEST_FILTER" ]] && printf "%s" "--filter-expr $TEST_FILTER" '';
           __cargo-package-args = ''
             if [ -n "''${ALL_PKGS+x}" ]; then echo "--workspace"; exit 0; fi
