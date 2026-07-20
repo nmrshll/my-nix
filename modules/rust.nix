@@ -112,8 +112,8 @@ with builtins; let
 
           # run = ''cargo run $(__cargo-package-args) $@ '';
           run = ''cargo run $@ '';
-          prun = ''cargo run -p "''${@:-$CURRENT_CRATE}" '';
-          pbuild = ''cargo build -p "''${@:-$CURRENT_CRATE}" '';
+          prun = ''cargo run -p "''${@:-$CURRENT_PKG}" '';
+          pbuild = ''cargo build -p "''${@:-$CURRENT_PKG}" '';
           # utest = ''cargo nextest run --workspace --nocapture -- $SINGLE_TEST '';
           rutest = ''
             if [ "$1" == "--all" ]; then export ALL_PKGS=true; fi
@@ -121,14 +121,14 @@ with builtins; let
           test_filter_args = '' [[ -n "$TEST_FILTER" ]] && printf "%s" "--filter-expr $TEST_FILTER" '';
           __cargo-package-args = ''
             if [ -n "''${ALL_PKGS+x}" ]; then echo "--workspace"; exit 0; fi
-            if [ -n "$CURRENT_CRATE" ]; then echo "-p $CURRENT_CRATE"; else echo "--workspace"; fi
+            if [ -n "$CURRENT_PKG" ]; then echo "-p $CURRENT_PKG"; else echo "--workspace"; fi
           '';
           # rptest = ''package="$1"; shift; cargo nextest run -p "$package" --nocapture "$@" -- "$SINGLE_TEST" '';
           # penv = ''printf "%s\n" "${toJSON config.devShells.default.shellHook}" '';
           # de = ''printf "%s\n" "${pkgs.pkg-config}" '';
           workspace-members = ''cargo metadata --format-version=1 | jq -r '.workspace_members[] | split("#")[0] | split("/")[-1]' '';
 
-          pcheck = ''cargo check -p "''${@:-$CURRENT_CRATE}" '';
+          pcheck = ''cargo check -p "''${@:-$CURRENT_PKG}" '';
         };
 
         env = {
