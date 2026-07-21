@@ -2,6 +2,7 @@
 
   pkgDefs.handy = rec {
     versions = {
+      aarch64-darwin."0.9.4".sha256 = "sha256:0xi4wxszpb6scpcadns2fxhhxr405i9v2pi5nsnc6kg4zm6fry5v";
       aarch64-darwin."0.8.2".sha256 = "1a2156h5sfnr5mydps7b6r701nqzkpmhb8m1wpizdppchy563vnp";
       aarch64-darwin."0.7.11".sha256 = "0ill0rsmvxy81yhgdp4wk39nvb60r2qhcv12fywb1z5ppab4d1za";
       aarch64-darwin."0.7.9".sha256 = "0hsrklmphdd14za0d7n1c96xbw9g3n6bfg1jn7jvjwysh17affbv";
