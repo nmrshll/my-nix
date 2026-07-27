@@ -309,7 +309,9 @@
   };
 
   pkgDefs.poolside-cli = rec {
+    versions.aarch64-darwin."1.0.11".sha256 = "yaOiCpCU8IxXYEoQvj2KVmbCruPVITSqJwigKe+GDfM=";
     versions.aarch64-darwin."1.0.0".sha256 = "/nYYNu9hZ6SvoV8lCkfNo0YtqjPtJgrIutEndWYVgIg=";
+
     mkPkg = { pkgs, version ? l.latest versions.${system}, system ? pkgs.stdenv.hostPlatform.system, ... }:
       let
         # Mapping Nix system strings to the script's naming convention
@@ -620,6 +622,7 @@
 
   pkgDefs.mimo-code = rec {
     versions = {
+      aarch64-darwin."0.1.9".sha256 = "sha256-Vhx5oVeji5419jbNdVh99ryZWKOKrL1lhzMchfiLyr0=";
       aarch64-darwin."0.1.3".sha256 = "sha256-dmoXFbZo0YAcVOgMA0OhYxLSe1p/sHSeXIdjxzafIN0=";
       aarch64-darwin."0.1.0".sha256 = "sha256-BO9FQS03ZR0pSYNKPubX/GnFp5BTkC0mc2qQ75mTavs=";
     };
