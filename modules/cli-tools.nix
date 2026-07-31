@@ -44,7 +44,7 @@
 
           env-switch = ''
             ROOT="$(git rev-parse --show-toplevel)"
-            ENV_DIR="$ROOT/.envs"
+            ENV_DIR="$ROOT/.config/envs"
             ENV_FILE="$ROOT/.env"
 
             backup_real_file() {
