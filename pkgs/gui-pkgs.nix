@@ -7,20 +7,20 @@
         mkPkg = { version ? "1.16.5-6703236727046144", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = pkgs.lib.forSystem {
-              aarch64-darwin = "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/${version}/darwin-arm/Antigravity.dmg";
+            let
+              url = pkgs.lib.forSystem {
+                aarch64-darwin = "https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/${version}/darwin-arm/Antigravity.dmg";
+              };
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "Antigravity";
+              meta = { description = "AI-powered IDE"; homepage = "https://antigravity.google/"; };
+              passthru = { inherit versions mkPkg src; };
             };
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version url;
-            sha256 = versions.${version}.sha256;
-            appname = "Antigravity";
-            meta = { description = "AI-powered IDE"; homepage = "https://antigravity.google/"; };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
 
@@ -33,44 +33,45 @@
         mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = pkgs.lib.forSystem {
-              aarch64-darwin = "https://anytype-release.fra1.cdn.digitaloceanspaces.com/Anytype-${version}-mac-arm64.dmg";
+            let
+              url = pkgs.lib.forSystem {
+                aarch64-darwin = "https://anytype-release.fra1.cdn.digitaloceanspaces.com/Anytype-${version}-mac-arm64.dmg";
+              };
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "AnyType";
+              meta = { description = "A space for your thoughts, private, local, p2p & open"; homepage = "https://anytype.io/"; };
+              passthru = { inherit versions mkPkg src; };
             };
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version url;
-            sha256 = versions.${version}.sha256;
-            appname = "AnyType";
-            meta = { description = "A space for your thoughts, private, local, p2p & open"; homepage = "https://anytype.io/"; };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
 
     ownPkgs.beeper =
       let
+        versions."4.3.0".sha256 = "18xxz7wk862pikm2v4wzfx9mdhfkhylh0n5pqdyxzmrkr23hjn1g";
         versions."4.2.532".sha256 = "05indiqrfwsj6fx85l02ky57hf7kjkkkaic67i8wv4l9n3j4cvnj";
         versions."4.0.779".sha256 = "1z9z5aswx1fh2z8pd5761z4db6q8z4mbl4vshfh5wy055l0gvvp4";
-        mkPkg = { version ? "4.2.532", ... }:
+        mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            appname = "Beeper";
-            url = pkgs.lib.forSystem {
-              aarch64-darwin = "https://beeper-desktop.download.beeper.com/builds/Beeper-${version}-arm64-mac.zip";
-              x86_64-linux = "https://download.beeper.com/versions/${version}/linux/appImage/x64";
-            };
-            src = builtins.fetchurl { inherit url; sha256 = versions.${version}.sha256; };
-          in
-          pkgs.stdenvNoCC.mkDerivation {
-            inherit version src;
-            pname = l.slugify appname;
-            nativeBuildInputs = [ pkgs.undmg ];
-            buildInputs = [ pkgs.unzip ];
-            unpackCmd = ''set -x
+            let
+              appname = "Beeper";
+              url = pkgs.lib.forSystem {
+                aarch64-darwin = "https://beeper-desktop.download.beeper.com/builds/Beeper-${version}-arm64-mac.zip";
+                x86_64-linux = "https://download.beeper.com/versions/${version}/linux/appImage/x64";
+              };
+              src = builtins.fetchurl { inherit url; sha256 = versions.${version}.sha256; };
+            in
+            pkgs.stdenvNoCC.mkDerivation {
+              inherit version src;
+              pname = l.slugify appname;
+              nativeBuildInputs = [ pkgs.undmg ];
+              buildInputs = [ pkgs.unzip ];
+              unpackCmd = ''set -x
                 echo "File to unpack: $curSrc"
                 if ! [[ "$curSrc" =~ \.zip$ ]]; then echo "[ERROR] Expected a zip file"; return 1; fi
                 runHook preUnpack
@@ -78,17 +79,17 @@
                 unzip $src
                 runHook postUnpack
               '';
-            phases = [
-              "unpackPhase"
-              "installPhase"
-            ];
-            installPhase = ''
-              mkdir -p "$out/Applications/${appname}.app"
-              cp -a ./. "$out/Applications/${appname}.app/"
-            '';
-            passthru = { inherit versions mkPkg src; };
-            meta = { description = "All your chats in one app"; homepage = "https://beeper.com"; };
-          };
+              phases = [
+                "unpackPhase"
+                "installPhase"
+              ];
+              installPhase = ''
+                mkdir -p "$out/Applications/${appname}.app"
+                cp -a ./. "$out/Applications/${appname}.app/"
+              '';
+              passthru = { inherit versions mkPkg src; };
+              meta = { description = "All your chats in one app"; homepage = "https://beeper.com"; };
+            };
       in
       mkPkg { };
 
@@ -98,37 +99,37 @@
         mkPkg = { version ? "1.2.27", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            appname = "opencode";
-            src = builtins.fetchurl {
-              url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-desktop-darwin-aarch64.app.tar.gz";
-              sha256 = versions.${version}.sha256;
-            };
-            sharedDrvAttrs = {
-              inherit version src;
-              pname = appname;
-              meta = {
-                description = "AI-powered code editor and terminal";
-                homepage = "https://opencode.ai";
-                platforms = [ "aarch64-darwin" ];
+            let
+              appname = "opencode";
+              src = builtins.fetchurl {
+                url = "https://github.com/anomalyco/opencode/releases/download/v${version}/opencode-desktop-darwin-aarch64.app.tar.gz";
+                sha256 = versions.${version}.sha256;
               };
-            };
-          in
-          if pkgs.stdenv.isDarwin then
-            pkgs.stdenvNoCC.mkDerivation
-              (sharedDrvAttrs // {
-                buildInputs = [ pkgs.bzip2 ];
-                unpackCmd = ''
-                  echo "File to unpack: $curSrc"
-                  tar -xf "$curSrc"
-                '';
-                installPhase = ''
-                  mkdir -p "$out/Applications/${appname}.app"
-                  cp -a ./. "$out/Applications/${appname}.app/"
-                '';
-                passthru = { inherit versions mkPkg src; };
-              })
-          else throw "Unsupported system: ${pkgs.stdenv.hostPlatform.system}";
+              sharedDrvAttrs = {
+                inherit version src;
+                pname = appname;
+                meta = {
+                  description = "AI-powered code editor and terminal";
+                  homepage = "https://opencode.ai";
+                  platforms = [ "aarch64-darwin" ];
+                };
+              };
+            in
+            if pkgs.stdenv.isDarwin then
+              pkgs.stdenvNoCC.mkDerivation
+                (sharedDrvAttrs // {
+                  buildInputs = [ pkgs.bzip2 ];
+                  unpackCmd = ''
+                    echo "File to unpack: $curSrc"
+                    tar -xf "$curSrc"
+                  '';
+                  installPhase = ''
+                    mkdir -p "$out/Applications/${appname}.app"
+                    cp -a ./. "$out/Applications/${appname}.app/"
+                  '';
+                  passthru = { inherit versions mkPkg src; };
+                })
+            else throw "Unsupported system: ${pkgs.stdenv.hostPlatform.system}";
       in
       mkPkg { };
 
@@ -139,23 +140,23 @@
         mkPkg = { version ? "latest", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            arch = if pkgs.stdenv.hostPlatform.isAarch64 then "arm64" else "x86_64";
-            url = "https://cdn.augmentcode.com/stable/Intent-latest-${arch}.dmg";
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version url;
-            sha256 = versions.${version}.sha256;
-            appname = "Intent by Augment";
-            meta = {
-              description = "AI-powered code completion and refactoring";
-              homepage = "https://intent.ai";
-              platforms = [ "aarch64-darwin" ];
+            let
+              arch = if pkgs.stdenv.hostPlatform.isAarch64 then "arm64" else "x86_64";
+              url = "https://cdn.augmentcode.com/stable/Intent-latest-${arch}.dmg";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "Intent by Augment";
+              meta = {
+                description = "AI-powered code completion and refactoring";
+                homepage = "https://intent.ai";
+                platforms = [ "aarch64-darwin" ];
+              };
+              passthru = { inherit versions mkPkg src; };
             };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
 
@@ -181,18 +182,18 @@
         mkPkg = { version ? "4.0.6", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = "https://github.com/transmission/transmission/releases/download/${version}/Transmission-${version}.dmg";
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version url;
-            sha256 = versions.${version}.sha256;
-            appname = "Transmission";
-            meta = { description = "Cross-platform BitTorrent client"; homepage = "https://transmissionbt.com"; };
-            passthru = { inherit versions mkPkg src; };
-          };
+            let
+              url = "https://github.com/transmission/transmission/releases/download/${version}/Transmission-${version}.dmg";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "Transmission";
+              meta = { description = "Cross-platform BitTorrent client"; homepage = "https://transmissionbt.com"; };
+              passthru = { inherit versions mkPkg src; };
+            };
       in
       mkPkg { };
 
@@ -202,20 +203,20 @@
         mkPkg = { version ? "4.1.4", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = {
-              aarch64-darwin = "https://github.com/johnste/finicky/releases/download/v${version}/Finicky.dmg";
-            }.${pkgs.stdenv.hostPlatform.system};
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit url version;
-            sha256 = versions.${version}.sha256;
-            appname = "Finicky";
-            meta = { description = "A macOS app for customizing which browser to start"; homepage = "https://github.com/johnste/finicky"; };
-            passthru = { inherit versions mkPkg src; };
-          };
+            let
+              url = {
+                aarch64-darwin = "https://github.com/johnste/finicky/releases/download/v${version}/Finicky.dmg";
+              }.${pkgs.stdenv.hostPlatform.system};
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit url version;
+              sha256 = versions.${version}.sha256;
+              appname = "Finicky";
+              meta = { description = "A macOS app for customizing which browser to start"; homepage = "https://github.com/johnste/finicky"; };
+              passthru = { inherit versions mkPkg src; };
+            };
       in
       mkPkg { };
 
@@ -225,19 +226,19 @@
         mkPkg = { version ? "241012ess7yxs0e", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = "https://dl.todesktop.com/${version}/mac/dmg/arm64";
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version;
-            sha256 = versions.${version}.sha256;
-            inherit url;
-            appname = "ComfyUI";
-            meta = { description = "ComfyUI is a powerful, flexible, and user-friendly interface for Stable Diffusion."; homepage = "https://www.comfy.org/"; };
-            passthru = { inherit versions mkPkg src; };
-          };
+            let
+              url = "https://dl.todesktop.com/${version}/mac/dmg/arm64";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version;
+              sha256 = versions.${version}.sha256;
+              inherit url;
+              appname = "ComfyUI";
+              meta = { description = "ComfyUI is a powerful, flexible, and user-friendly interface for Stable Diffusion."; homepage = "https://www.comfy.org/"; };
+              passthru = { inherit versions mkPkg src; };
+            };
       in
       mkPkg { };
 
@@ -386,21 +387,21 @@
         mkPkg = { version ? "1.0.9", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = "https://github.com/azu/launchd-ui/releases/download/v${version}/launchd-ui_${version}_aarch64.dmg";
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit url version sha256;
-            appname = "launchd-ui";
-            meta = {
-              source = "https://github.com/azu/launchd-ui";
-              description = "A GUI application for managing macOS launchd agents and daemons";
-              homepage = "https://github.com/azu/launchd-ui";
+            let
+              url = "https://github.com/azu/launchd-ui/releases/download/v${version}/launchd-ui_${version}_aarch64.dmg";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit url version sha256;
+              appname = "launchd-ui";
+              meta = {
+                source = "https://github.com/azu/launchd-ui";
+                description = "A GUI application for managing macOS launchd agents and daemons";
+                homepage = "https://github.com/azu/launchd-ui";
+              };
+              passthru = { inherit versions mkPkg src; };
             };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
 
@@ -410,22 +411,22 @@
         mkPkg = { version ? "0.30.0", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = "https://github.com/66HEX/frame/releases/download/${version}/Frame-aarch64.dmg";
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit version url;
-            sha256 = versions.${version}.sha256;
-            appname = "Frame";
-            meta = {
-              description = "A macOS menu bar utility";
-              homepage = "https://github.com/66HEX/frame";
-              platforms = [ "aarch64-darwin" ];
+            let
+              url = "https://github.com/66HEX/frame/releases/download/${version}/Frame-aarch64.dmg";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "Frame";
+              meta = {
+                description = "A macOS menu bar utility";
+                homepage = "https://github.com/66HEX/frame";
+                platforms = [ "aarch64-darwin" ];
+              };
+              passthru = { inherit versions mkPkg src; };
             };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
   };
