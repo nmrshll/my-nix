@@ -46,7 +46,10 @@ with builtins; let
 
   flakeModules.darwinPkgsLib = { ... }: {
     config.perSystem = { system, pkgs, l, ... }: {
-      config.pkgs.extraLib.darwin = l.mkIf (l.hasInfix "darwin" system) (mkLibDarwin { inherit pkgs l; });
+      # NOTE: defined on all systems (not just darwin) so that forcing `pkgs.lib`
+      # (e.g. while evaluating ownPkgs on linux) doesn't hit an undefined option.
+      # installDmg is only *called* by packages that null-guard themselves to darwin.
+      config.pkgs.extraLib.darwin = mkLibDarwin { inherit pkgs l; };
     };
   };
 

@@ -19,17 +19,16 @@ with builtins; {
               setuptools
               wheel
             ]);
-          in
-          pkgs.stdenv.mkDerivation {
-            pname = "cactus";
-            inherit version;
-
             src = pkgs.fetchFromGitHub {
               owner = "cactus-compute";
               repo = "cactus";
               rev = "v${version}";
               sha256 = versions.${version}.sha256;
             };
+          in
+          pkgs.stdenv.mkDerivation {
+            pname = "cactus";
+            inherit version src;
 
             nativeBuildInputs = [ pythonEnv pkgs.python3.pkgs.pip ];
 
@@ -57,7 +56,7 @@ with builtins; {
               homepage = "https://github.com/cactus-compute/cactus";
               platforms = l.platforms.unix;
             };
-            passthru = { inherit versions mkPkg; };
+            passthru = { inherit versions mkPkg src; };
           };
       in
       mkPkg { };

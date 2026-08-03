@@ -56,84 +56,28 @@ with builtins; let
   #   };
   # };
 
-  # This exposes ownPkgs in flake outputs AND as a perSystem module argument (collected from pkgs/ )
-  flakeModules.ownPkgs = part@{ config, l, ... }: {
-    options.pkgDefs = l.mkOption { type = l.types.unspecified; default = { }; };
-    # TODO: use findNixFilesRec
+  # NOTE: flakeModules.ownPkgs (the pkgDefs-based collector) is removed.
+  # Packages are now defined directly in pkgs/*.nix as perSystem.ownPkgs.<name>,
+  # one `ownPkgs.X = let ...; in mkPkg { };` per package, and exposed by
+  # flakeModules.ownPkgs2 below. To pin/build a specific version of a package,
+  # use the passthru attrs `versions` and `mkPkg` (and `src` when the package
+  # is built from a single download).
+
+  flakeModules.ownPkgs2 = part@{ l, ... }: {
     imports = [
+      ../pkgs/new-structure.nix
       ../pkgs/cli-pkgs.nix
       ../pkgs/editor-pkgs.nix
       ../pkgs/gui-pkgs.nix
       ../pkgs/libs-pkgs.nix
       ../pkgs/service-pkgs.nix
     ];
-
-    config.perSystem = { pkgs, l, system, /*inputs',*/ /*lib,*/ ... }: with builtins; let
-      # # TODO figure out env-based overrides
-      # mkExtraInput = overridePath: defaultSrc:
-      #   if overridePath != "" && pathExists overridePath
-      #   then (getFlake overridePath)
-      #   else getFlake defaultSrc;
-
-      # extraInputs =
-      #   let tools = mkExtraInput (getEnv "NIX_OVERRIDE_INPUT_TOOLS") "https://gitlab.com/nmrshll/tools.git";
-      #   in {
-      #     # TODO use PAT in URL/env for private repos
-      #     tools = getFlake ("path:/Users/me/src/me/tools");
-      #   };
-
-      # collect packages indexed by name & version
-      ownPkgDefs = foldl' (a: b: deepSeq b (a // b)) { } (map
-        (pkgName:
-          let
-            pkgDef = getAttr pkgName config.pkgDefs;
-            versionedPkgs = listToAttrs (map
-              (version: {
-                name = "${pkgName}_${version}";
-                value = { pkgs, lib, ... }: (pkgDef.mkPkg { inherit pkgs lib l version; });
-              })
-              (attrNames pkgDef.versions.${system} or { }));
-            defaultPkg =
-              if pkgDef ? versions.${system} || !(pkgDef?versions)
-              then { ${pkgName} = { pkgs, lib, ... }: (pkgDef.mkPkg { inherit pkgs lib l; }); }
-              else { };
-          in
-          versionedPkgs // defaultPkg
-        )
-        (attrNames config.pkgDefs));
-
-      # ownPkgs = l.filterAttrs (n: v: v != null) (
-      #   (l.mapAttrs (name: mkPkg: pkgs.callPackage mkPkg { }) ownPkgDefs)
-      # );
-      mkOwnPkgs = { pkgs, lib, ... }: l.filterAttrs (n: v: v != null) (
-        (l.mapAttrs (name: mkPkg: pkgs.callPackage mkPkg { }) ownPkgDefs)
-      );
-      thisFlakeInputs = part.config.flakeInputsOf.my-nix;
-
-    in
-    {
-      pkgs.overlays = [
-        # (final: prev: { own = (prev.own or { }) // { tools = (l.dbg3 inputs.tools.packages).${system} or { }; }; })
-        (final: prev: { own.tools = thisFlakeInputs.tools.packages.${system}; })
-        (final: prev: { own = (prev.own or { }) // { my-nix = mkOwnPkgs { pkgs = final; lib = prev.lib; }; }; })
-      ];
-      expose.packages.own = {
-        tools = thisFlakeInputs.tools.packages.${system};
-        my-nix = mkOwnPkgs { pkgs = pkgs; lib = l; };
-      };
-    };
-  };
-
-  flakeModules.ownPkgs2 = part@{ l, ... }: {
-    imports = [
-      ../pkgs/new-structure.nix
-    ];
     config.perSystem = perSys@{ pkgs, config, l, system, ... }: {
       options.ownPkgs = l.mkOption { type = l.types.attrsOf l.types.unspecified; default = { }; };
       config.pkgs.overlays = [
-        (final: prev: { own = (prev.own or { }) // perSys.config.ownPkgs; })
+        (final: prev: { own = (prev.own or { }) // (l.filterAttrs (n: v: v != null) perSys.config.ownPkgs); })
       ];
-      config.expose.packages.own = perSys.config.ownPkgs;
+      config.expose.packages.own = l.filterAttrs (n: v: v != null) perSys.config.ownPkgs;
     };
   };
 

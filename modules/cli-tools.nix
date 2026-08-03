@@ -243,18 +243,18 @@
           # long-loop = ''for i in {1..1000000}; do echo "Processing number $i"; sleep 0.1; done'';
           # start = ''
           #   set -x
-          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr start "${bin.run-net}" --name "$(${bin.oxns})-long-loop" --namespace "$(${bin.oxns})"
-          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr logs "$(${bin.oxns})-long-loop" -f
+          #   ${pkgs.own.oxmgr}/bin/oxmgr start "${bin.run-net}" --name "$(${bin.oxns})-long-loop" --namespace "$(${bin.oxns})"
+          #   ${pkgs.own.oxmgr}/bin/oxmgr logs "$(${bin.oxns})-long-loop" -f
           # '';
           # stop = ''
           #   set -x
-          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop "$(${bin.oxns})-long-loop"
-          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr rm "$(${bin.oxns})-long-loop"
+          #   ${pkgs.own.oxmgr}/bin/oxmgr stop "$(${bin.oxns})-long-loop"
+          #   ${pkgs.own.oxmgr}/bin/oxmgr rm "$(${bin.oxns})-long-loop"
           # '';
           # oxns = ''printf "${wd}" | md5sum | cut -c1-8'';
           # stop-all = ''
           #   set -x
-          #   ${pkgs.own.my-nix.oxmgr}/bin/oxmgr ls | grep "$(${bin.oxns})" | awk '{print $2}'| xargs ${pkgs.own.my-nix.oxmgr}/bin/oxmgr stop
+          #   ${pkgs.own.oxmgr}/bin/oxmgr ls | grep "$(${bin.oxns})" | awk '{print $2}'| xargs ${pkgs.own.oxmgr}/bin/oxmgr stop
           # '';
 
           pc = ''${pkgs.process-compose}/bin/process-compose "$@" '';
@@ -382,7 +382,7 @@
 
 
         devDeps = [
-          pkgs.own.my-nix.oxmgr
+          pkgs.own.oxmgr
           pkgs.pstree
           pkgs.process-compose
         ];
