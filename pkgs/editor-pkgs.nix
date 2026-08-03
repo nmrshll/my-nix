@@ -97,12 +97,13 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit url version;
             sha256 = versions.${version}.sha256;
             appname = "Warp";
             meta = { description = "The Agentic Development Environment (it's actually a terminal)"; homepage = "https://warp.dev/"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -118,12 +119,13 @@
               sha256 = versions.${version}.sha256;
               src = pkgs.fetchurl { inherit url sha256; };
             in
-            (pkgs.lib.darwin.installDmg {
+            pkgs.lib.darwin.installDmg {
               inherit url version;
               sha256 = versions.${version}.sha256;
               appname = "Windsurf";
               meta = { description = "Windsurf is an AI code editor."; homepage = "https://codeium.com/windsurf"; };
-            }) // { passthru = { inherit versions mkPkg src; }; }
+              passthru = { inherit versions mkPkg src; };
+            }
           else null;
       in
       mkPkg { };
@@ -140,7 +142,7 @@
               sha256 = versions.${version}.sha256;
               src = pkgs.fetchurl { inherit url sha256; };
             in
-            (pkgs.lib.darwin.installDmg {
+            pkgs.lib.darwin.installDmg {
               inherit url version;
               sha256 = versions.${version}.sha256;
               appname = "Aide";
@@ -148,7 +150,8 @@
                 description = "Aide is an open-source AI code editor (fork of VSCode).";
                 homepage = "https://aide.dev/";
               };
-            }) // { passthru = { inherit versions mkPkg src; }; }
+              passthru = { inherit versions mkPkg src; };
+            }
           else null;
       in
       mkPkg { };

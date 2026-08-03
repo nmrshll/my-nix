@@ -157,6 +157,8 @@ with builtins; {
               runHook postInstall
             '';
 
+            passthru = { inherit versions mkPkg; };
+
             meta = with pkgs.lib; {
               description = "Unified AI router with 160+ providers, RTK+Caveman compression, auto fallback, MCP/A2A";
               homepage = "https://github.com/diegosouzapw/OmniRoute";

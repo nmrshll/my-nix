@@ -14,12 +14,13 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version url;
             sha256 = versions.${version}.sha256;
             appname = "Antigravity";
             meta = { description = "AI-powered IDE"; homepage = "https://antigravity.google/"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -39,12 +40,13 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version url;
             sha256 = versions.${version}.sha256;
             appname = "AnyType";
             meta = { description = "A space for your thoughts, private, local, p2p & open"; homepage = "https://anytype.io/"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -143,7 +145,7 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version url;
             sha256 = versions.${version}.sha256;
             appname = "Intent by Augment";
@@ -152,7 +154,8 @@
               homepage = "https://intent.ai";
               platforms = [ "aarch64-darwin" ];
             };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -183,12 +186,13 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version url;
             sha256 = versions.${version}.sha256;
             appname = "Transmission";
             meta = { description = "Cross-platform BitTorrent client"; homepage = "https://transmissionbt.com"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -205,12 +209,13 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit url version;
             sha256 = versions.${version}.sha256;
             appname = "Finicky";
             meta = { description = "A macOS app for customizing which browser to start"; homepage = "https://github.com/johnste/finicky"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -225,13 +230,14 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version;
             sha256 = versions.${version}.sha256;
             inherit url;
             appname = "ComfyUI";
             meta = { description = "ComfyUI is a powerful, flexible, and user-friendly interface for Stable Diffusion."; homepage = "https://www.comfy.org/"; };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -385,7 +391,7 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit url version sha256;
             appname = "launchd-ui";
             meta = {
@@ -393,7 +399,8 @@
               description = "A GUI application for managing macOS launchd agents and daemons";
               homepage = "https://github.com/azu/launchd-ui";
             };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
 
@@ -408,7 +415,7 @@
             sha256 = versions.${version}.sha256;
             src = pkgs.fetchurl { inherit url sha256; };
           in
-          (pkgs.lib.darwin.installDmg {
+          pkgs.lib.darwin.installDmg {
             inherit version url;
             sha256 = versions.${version}.sha256;
             appname = "Frame";
@@ -417,7 +424,8 @@
               homepage = "https://github.com/66HEX/frame";
               platforms = [ "aarch64-darwin" ];
             };
-          }) // { passthru = { inherit versions mkPkg src; }; };
+            passthru = { inherit versions mkPkg src; };
+          };
       in
       mkPkg { };
   };
