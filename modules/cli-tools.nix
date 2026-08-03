@@ -49,8 +49,8 @@
 
             backup_real_file() {
               if [ -f "$ENV_FILE" ] && [ ! -L "$ENV_FILE" ]; then
-                mkdir -p "$ROOT/infra"
-                mv "$ENV_FILE" "$ROOT/infra/.env.bak.$(date +%Y%m%d%H%M%S)"
+                mkdir -p "$ENV_DIR"
+                mv "$ENV_FILE" "$ENV_DIR/.env.bak.$(date +%Y%m%d%H%M%S)"
               fi
             }
 
@@ -77,6 +77,47 @@
                 ;;
               --get|-g)
                 current_env_name
+                ;;
+              --init|-i)
+                mkdir -p "$ENV_DIR"
+                SHARED="$ENV_DIR/_shared.env"
+                if [ ! -f "$SHARED" ]; then
+                  if [ -f "$ENV_FILE" ] && [ ! -L "$ENV_FILE" ]; then
+                    cp "$ENV_FILE" "$SHARED"
+                    echo "Initialized _shared.env from existing .env"
+                  else
+                    : > "$SHARED"
+                    echo "Initialized empty _shared.env"
+                  fi
+                else
+                  echo "_shared.env already exists"
+                fi
+                ;;
+              --new|-n)
+                NAME="$2"
+                if [ -z "$NAME" ]; then
+                  echo "Usage: env-switch --new <name>" >&2
+                  exit 1
+                fi
+                TARGET="$ENV_DIR/$NAME.env"
+                if [ -f "$TARGET" ]; then
+                  echo "Error: .envs/$NAME.env already exists" >&2
+                  exit 1
+                fi
+                mkdir -p "$ENV_DIR"
+                backup_real_file
+                SHARED="$ENV_DIR/_shared.env"
+                # save shared from current env before switching
+                if [ -L "$ENV_FILE" ] && [ -f "$ENV_FILE" ] && grep -q '# --- shared ---' "$ENV_FILE"; then
+                  sed -n '/# --- shared ---$/,/# --- end shared ---/{//!p}' "$ENV_FILE" > "$SHARED"
+                fi
+                if [ -f "$SHARED" ]; then
+                  { echo "# --- shared ---"; cat "$SHARED"; echo "# --- end shared ---"; } > "$TARGET"
+                else
+                  : > "$TARGET"
+                fi
+                ln -sf "$TARGET" "$ENV_FILE"
+                echo "Created and switched to $NAME"
                 ;;
               "")
                 current_env_name
