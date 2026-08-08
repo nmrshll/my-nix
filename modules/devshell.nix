@@ -45,6 +45,11 @@ with builtins; let
             default = { };
             description = "AttrSet of paths/lines or { path|script, type } objects to clean up in devShell.";
           };
+          scripts = lib.mkOption {
+            type = lib.types.lazyAttrsOf (lib.types.oneOf [ lib.types.lines lib.types.str ]);
+            default = { };
+            description = "AttrSet of shell script lines to map to binaries via pkgs.writeShellScriptBin and include in devShell.";
+          };
           overrides = lib.mkOption {
             type = lib.types.lazyAttrsOf (lib.types.anything);
             default = { stdenv = pkgs.stdenvNoCC; };
@@ -71,11 +76,12 @@ with builtins; let
           cleanupScript = pkgs.writeShellScriptBin "devshell-cleanup" (
             lib.concatMapStringsSep "\n" genCleanupCmd cleanupsList
           );
+          scriptPackages = attrValues (lib.mapAttrs pkgs.writeShellScriptBin config.myDevShell.scripts);
         in
         {
           devShells.default = (pkgs.mkShell.override config.myDevShell.overrides {
             env = lib.mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else v) config.myDevShell.env;
-            buildInputs = config.myDevShell.buildInputs ++ [ cleanupScript ];
+            buildInputs = config.myDevShell.buildInputs ++ [ cleanupScript ] ++ scriptPackages;
             shellHook = lib.concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
           });
         };
