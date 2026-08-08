@@ -12,7 +12,7 @@ with builtins; let
           ndev = ''nix develop . --show-trace --impure "$${nixOverrides[@]}" '';
           nup = ''set -x; nix flake update --show-trace --refresh --no-eval-cache $NIX_OVERRIDES'';
           ncheck = ''set -x; nix flake check --impure --show-trace . $NIX_OVERRIDES'';
-          nclean = ''find . -maxdepth 1 -type l -name 'result*' -exec unlink {} +'';
+          nclean = ''find . -maxdepth 1 -type l -name 'result*' -print0 | xargs -0 -n 1 unlink'';
           nbuild = ''nix build ".#$1" --impure --show-trace --accept-flake-config $NIX_OVERRIDES'';
         };
 
@@ -25,7 +25,7 @@ with builtins; let
         config.myDevShell.buildInputs = attrValues scripts;
         config.myDevShell.cleanups.nix-result = {
           type = "script";
-          script = ''find . -maxdepth 1 -type l -name 'result*' -exec unlink {} +'';
+          script = ''find . -maxdepth 1 -type l -name 'result*' -print0 | xargs -0 -n 1 unlink'';
         };
       };
   };
