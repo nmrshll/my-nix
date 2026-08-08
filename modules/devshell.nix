@@ -60,7 +60,6 @@ with builtins; let
 
       config =
         let
-          cleanupsList = attrValues config.myDevShell.cleanups;
           genCleanupCmd = item:
             if isString item then ''
               if [ -L "${item}" ]; then unlink "${item}"
@@ -73,16 +72,15 @@ with builtins; let
             else if item.type == "file" then '' [ -f "${item.path}" ] && rm -f "${item.path}" ''
             else if item.type == "dir" then '' [ -d "${item.path}" ] && rm -rf "${item.path}" ''
             else "";
-          cleanupScript = pkgs.writeShellScriptBin "devshell-cleanup" (
-            lib.concatMapStringsSep "\n" genCleanupCmd cleanupsList
-          );
-          scriptPackages = attrValues (lib.mapAttrs pkgs.writeShellScriptBin config.myDevShell.scripts);
+          scriptsPkgSet = mapAttrs pkgs.writeShellScriptBin config.myDevShell.scripts;
         in
         {
+          myDevShell.scripts.cleanup = lib.concatMapStringsSep "\n" genCleanupCmd (attrValues config.myDevShell.cleanups);
+
           devShells.default = (pkgs.mkShell.override config.myDevShell.overrides {
-            env = lib.mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else v) config.myDevShell.env;
-            buildInputs = config.myDevShell.buildInputs ++ [ cleanupScript ] ++ scriptPackages;
-            shellHook = lib.concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
+            env = mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else v) config.myDevShell.env;
+            buildInputs = config.myDevShell.buildInputs ++ (attrValues scriptsPkgSet);
+            shellHook = concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
           });
         };
     };
