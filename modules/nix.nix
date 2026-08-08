@@ -23,6 +23,10 @@ with builtins; let
         config.bin = bin;
         config.expose.packages = scripts;
         config.myDevShell.buildInputs = attrValues scripts;
+        config.myDevShell.cleanups.nix-result = {
+          type = "script";
+          script = ''find . -maxdepth 1 -type l -name 'result*' -exec unlink {} +'';
+        };
       };
   };
 
