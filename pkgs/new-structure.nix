@@ -81,6 +81,16 @@ with builtins; {
             inherit version;
             npmDepsHash = versions.${version}.npmDepsHash;
 
+            # Pin the build to the same Node the runtime wrapper uses
+            # (nodejs_22, NODE_MODULE_VERSION 127). buildNpmPackage defaults
+            # to pkgs.nodejs (Node 24 on nixos-26.05, ABI 137), so the
+            # node-gyp rebuild of better-sqlite3 below would otherwise be
+            # compiled against Node 24 and fail to dlopen at runtime:
+            #   "was compiled against a different Node.js version using
+            #    NODE_MODULE_VERSION 137. This version of Node.js requires
+            #    NODE_MODULE_VERSION 127"
+            nodejs = pkgs.nodejs_22;
+
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
               repo = "OmniRoute";
@@ -139,6 +149,17 @@ with builtins; {
                   fi
                 fi
               done
+
+              # The npm dist/ tarball ships a prebuilt better_sqlite3.node
+              # compiled against the publisher's Node (ABI 137 / Node 24),
+              # which does not match the runtime Node 22 (ABI 127). Make
+              # sure the dist copy carries the node-gyp build compiled above
+              # (against ${pkgs.nodejs_22.version}) so the module actually
+              # dlopens at runtime.
+              if [ -d dist/node_modules/better-sqlite3 ]; then
+                rm -rf dist/node_modules/better-sqlite3/build
+                cp -r node_modules/better-sqlite3/build dist/node_modules/better-sqlite3/build
+              fi
 
               # Copy the package to $out
               mkdir -p $out/lib/node_modules/omniroute
