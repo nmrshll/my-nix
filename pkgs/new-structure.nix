@@ -69,6 +69,11 @@ with builtins; {
           npmDepsHash = "sha256-pVq6fpF0d1FeJmZm4rGcV0wjpoFcDmlhY254Muo00qI=";
           npmDistHash = "sha256-sJXyyGId+zdaSRDtYkMOhz7abuuRm1ZU1AeyHFk4MlU=";
         };
+        versions."3.8.49" = {
+          sha256 = "sha256-nRLziV4NWPoa0ev57DV7jmAvLpL/1MP1EMZO2/drrTU=";
+          npmDepsHash = "sha256-R0u93MLUUWC8xFgq4S0Aj/7wg4pygTKwxP/eWkWMgCw=";
+          npmDistHash = "sha256-fcGsAxOdv1ZSwt24eHJu97lyRATKBw8rYeFvGTRhxYs=";
+        };
         mkPkg = { version ? (l.latest versions), ... }:
           let
             npmTarball = pkgs.fetchurl {
@@ -81,15 +86,12 @@ with builtins; {
             inherit version;
             npmDepsHash = versions.${version}.npmDepsHash;
 
-            # Pin the build to the same Node the runtime wrapper uses
-            # (nodejs_22, NODE_MODULE_VERSION 127). buildNpmPackage defaults
-            # to pkgs.nodejs (Node 24 on nixos-26.05, ABI 137), so the
-            # node-gyp rebuild of better-sqlite3 below would otherwise be
-            # compiled against Node 24 and fail to dlopen at runtime:
-            #   "was compiled against a different Node.js version using
-            #    NODE_MODULE_VERSION 137. This version of Node.js requires
-            #    NODE_MODULE_VERSION 127"
-            nodejs = pkgs.nodejs_22;
+            # Runtime: Node 24 (NODE_MODULE_VERSION 137). omniroute's engines
+            # allow '>=22 <23 || >=24 <27'; build and run on nodejs_24 so
+            # node-gyp-rebuilt native modules (e.g. better-sqlite3 12.x on
+            # 3.8.48, a V8-ABI module) match the runtime ABI 137. (On 3.8.49,
+            # better-sqlite3 13.x is N-API and version-independent.)
+            nodejs = pkgs.nodejs_24;
 
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
@@ -101,7 +103,7 @@ with builtins; {
             nativeBuildInputs = with pkgs; [
               python3
               pkg-config
-              nodejs_22
+              nodejs_24
               makeWrapper
             ];
 
@@ -123,7 +125,7 @@ with builtins; {
 
               # Compile native modules from source using node-gyp directly.
               # npm rebuild / prebuild-install may fetch a CI binary compiled
-              # against a newer V8 than runtime Node 22.23.1 — force source
+              # against a different V8 than runtime Node 24 — force source
               # compilation so the binary matches the Nix-built Node.js.
               (cd node_modules/better-sqlite3 && node ../.bin/node-gyp rebuild 2>&1)
               (cd node_modules/wreq-js && node ../.bin/node-gyp rebuild 2>&1) || true
@@ -150,12 +152,12 @@ with builtins; {
                 fi
               done
 
-              # The npm dist/ tarball ships a prebuilt better_sqlite3.node
-              # compiled against the publisher's Node (ABI 137 / Node 24),
-              # which does not match the runtime Node 22 (ABI 127). Make
-              # sure the dist copy carries the node-gyp build compiled above
-              # (against ${pkgs.nodejs_22.version}) so the module actually
-              # dlopens at runtime.
+              # Safeguard: make sure the dist copy of better-sqlite3 carries
+              # the node-gyp build compiled above (against
+              # ${pkgs.nodejs_24.version}). This matters for V8-ABI versions
+              # (better-sqlite3 12.x on 3.8.48), where the tarball's prebuilt
+              # could target a different ABI; on 3.8.49 (13.x, N-API) the
+              # copy is a no-op.
               if [ -d dist/node_modules/better-sqlite3 ]; then
                 rm -rf dist/node_modules/better-sqlite3/build
                 cp -r node_modules/better-sqlite3/build dist/node_modules/better-sqlite3/build
@@ -168,11 +170,11 @@ with builtins; {
               # Create bin wrappers
               mkdir -p $out/bin
               for bin in omniroute omniroute-reset-password; do
-                makeWrapper ${pkgs.nodejs_22}/bin/node \
+                makeWrapper ${pkgs.nodejs_24}/bin/node \
                   $out/bin/$bin \
                   --add-flags "$out/lib/node_modules/omniroute/bin/$bin.mjs" \
                   --set NODE_PATH "$out/lib/node_modules" \
-                  --prefix PATH : ${pkgs.nodejs_22}/bin
+                  --prefix PATH : ${pkgs.nodejs_24}/bin
               done
 
               runHook postInstall
