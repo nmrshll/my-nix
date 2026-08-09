@@ -134,6 +134,30 @@
       mkPkg { };
 
 
+    ownPkgs.open-codesign =
+      let
+        versions."0.2.1".sha256 = "sha256-norDYqef2+kpkT09X7KWsLgD/nstaA0dD3G348Cq7XA=";
+        mkPkg = { version ? (l.latest versions), ... }:
+          if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
+          else
+            let
+              url = "https://github.com/OpenCoworkAI/open-codesign/releases/download/v${version}/open-codesign-${version}-arm64.dmg";
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "Open CoDesign";
+              meta = {
+                description = "Open-source, local-first AI design agent (alternative to v0, Lovable, Bolt.new)";
+                homepage = "https://opencoworkai.github.io/open-codesign/";
+              };
+              passthru = { inherit versions mkPkg src; };
+            };
+      in
+      mkPkg { };
+
     ownPkgs.augment-intent =
       let
         versions."latest".sha256 = "03wkfzgf2k3nfikjrjsax8zf4j546w45cbnig66jhwsjaxiijlbj";
