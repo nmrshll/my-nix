@@ -65,7 +65,7 @@ with builtins; let
 
   flakeModules.ownPkgs2 = part@{ l, ... }: {
     imports = [
-      ../pkgs/new-structure.nix
+      ../pkgs/ai-providers.nix
       ../pkgs/ai-agents.nix
       ../pkgs/cli-pkgs.nix
       ../pkgs/editor-pkgs.nix
