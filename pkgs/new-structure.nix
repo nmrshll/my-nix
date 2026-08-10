@@ -91,7 +91,7 @@ with builtins; {
             # node-gyp-rebuilt native modules (e.g. better-sqlite3 12.x on
             # 3.8.48, a V8-ABI module) match the runtime ABI 137. (On 3.8.49,
             # better-sqlite3 13.x is N-API and version-independent.)
-            nodejs = pkgs.nodejs_24;
+            pins.nodejs = pkgs.nodejs_24;
 
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
@@ -100,11 +100,11 @@ with builtins; {
               sha256 = versions.${version}.sha256;
             };
 
-            nativeBuildInputs = with pkgs; [
-              python3
-              pkg-config
-              nodejs_24
-              makeWrapper
+            nativeBuildInputs = [
+              pkgs.python3
+              pkgs.pkg-config
+              pins.nodejs
+              pkgs.makeWrapper
             ];
 
             buildInputs = with pkgs; [
