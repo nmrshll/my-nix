@@ -94,7 +94,7 @@ with builtins; {
             # node-gyp-rebuilt native modules (e.g. better-sqlite3 12.x on
             # 3.8.48, a V8-ABI module) match the runtime ABI 137. (On 3.8.49,
             # better-sqlite3 13.x is N-API and version-independent.)
-            pins.nodejs = pkgs.nodejs_24;
+            nodejs = pkgs.nodejs_24;
 
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
@@ -106,7 +106,6 @@ with builtins; {
             nativeBuildInputs = [
               pkgs.python3
               pkgs.pkg-config
-              pins.nodejs
               pkgs.makeWrapper
             ];
 
@@ -156,8 +155,8 @@ with builtins; {
               done
 
               # Safeguard: make sure the dist copy of better-sqlite3 carries
-              # the node-gyp build compiled above (against
-              # ${pkgs.nodejs_24.version}). This matters for V8-ABI versions
+              # the node-gyp build compiled above (against ${nodejs.version}).
+              # This matters for V8-ABI versions
               # (better-sqlite3 12.x on 3.8.48), where the tarball's prebuilt
               # could target a different ABI; on 3.8.49 (13.x, N-API) the
               # copy is a no-op.
@@ -173,11 +172,11 @@ with builtins; {
               # Create bin wrappers
               mkdir -p $out/bin
               for bin in omniroute omniroute-reset-password; do
-                makeWrapper ${pkgs.nodejs_24}/bin/node \
+                makeWrapper ${nodejs}/bin/node \
                   $out/bin/$bin \
                   --add-flags "$out/lib/node_modules/omniroute/bin/$bin.mjs" \
                   --set NODE_PATH "$out/lib/node_modules" \
-                  --prefix PATH : ${pkgs.nodejs_24}/bin
+                  --prefix PATH : ${nodejs}/bin
               done
 
               runHook postInstall

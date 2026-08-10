@@ -150,36 +150,36 @@ with builtins; {
         mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            # Mapping Nix system strings to the script's naming convention
-            os = if pkgs.stdenv.isDarwin then "darwin" else "linux";
-            arch = if pkgs.stdenv.isAarch64 then "arm64" else "amd64";
-            src = pkgs.fetchurl {
-              url = "https://downloads.poolside.ai/pool/v${version}/pool-${os}-${arch}.tar.gz";
-              sha256 = versions.${version}.sha256;
+            let
+              # Mapping Nix system strings to the script's naming convention
+              os = if pkgs.stdenv.isDarwin then "darwin" else "linux";
+              arch = if pkgs.stdenv.isAarch64 then "arm64" else "amd64";
+              src = pkgs.fetchurl {
+                url = "https://downloads.poolside.ai/pool/v${version}/pool-${os}-${arch}.tar.gz";
+                sha256 = versions.${version}.sha256;
+              };
+            in
+            pkgs.stdenv.mkDerivation {
+              pname = "pool";
+              inherit version src;
+              # We don't need to build anything, just unpack and install
+              sourceRoot = ".";
+              installPhase = ''
+                mkdir -p $out/bin
+                # The script says the binary inside is named pool-os-arch
+                cp pool-${os}-${arch} $out/bin/pool
+                chmod +x $out/bin/pool
+              '';
+              passthru = {
+                inherit versions mkPkg src;
+                latest_version_url = "https://downloads.poolside.ai/pool/pool-latest-version.txt";
+              };
+              meta = {
+                description = "Poolside AI CLI";
+                homepage = "https://poolside.ai";
+                license = pkgs.lib.licenses.unfree; # Matches the EULA requirement in the script
+              };
             };
-          in
-          pkgs.stdenv.mkDerivation {
-            pname = "pool";
-            inherit version src;
-            # We don't need to build anything, just unpack and install
-            sourceRoot = ".";
-            installPhase = ''
-              mkdir -p $out/bin
-              # The script says the binary inside is named pool-os-arch
-              cp pool-${os}-${arch} $out/bin/pool
-              chmod +x $out/bin/pool
-            '';
-            passthru = {
-              inherit versions mkPkg src;
-              latest_version_url = "https://downloads.poolside.ai/pool/pool-latest-version.txt";
-            };
-            meta = {
-              description = "Poolside AI CLI";
-              homepage = "https://poolside.ai";
-              license = pkgs.lib.licenses.unfree; # Matches the EULA requirement in the script
-            };
-          };
       in
       mkPkg { };
 
@@ -325,19 +325,19 @@ with builtins; {
         mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            vData = versions.${version};
-            hermes-src = pkgs.fetchFromGitHub {
-              owner = "NousResearch";
-              repo = "hermes-agent";
-              rev = version;
-              sha256 = vData.sha256;
-            };
-            hermes-flake = (builtins.getFlake "${unsafeDiscardStringContext hermes-src.outPath}");
-            hermes-pkgs = hermes-flake.packages.${system}; # available: default, configKeys, fix-lockfiles, tui, web
-            hermes-agent = hermes-pkgs.default or (throw "Package not found for ${system}");
-          in
-          hermes-agent // { passthru = (hermes-agent.passthru or { }) // { inherit versions mkPkg; src = hermes-src; }; };
+            let
+              vData = versions.${version};
+              hermes-src = pkgs.fetchFromGitHub {
+                owner = "NousResearch";
+                repo = "hermes-agent";
+                rev = version;
+                sha256 = vData.sha256;
+              };
+              hermes-flake = (builtins.getFlake "${unsafeDiscardStringContext hermes-src.outPath}");
+              hermes-pkgs = hermes-flake.packages.${system}; # available: default, configKeys, fix-lockfiles, tui, web
+              hermes-agent = hermes-pkgs.default or (throw "Package not found for ${system}");
+            in
+            hermes-agent // { passthru = (hermes-agent.passthru or { }) // { inherit versions mkPkg; src = hermes-src; }; };
       in
       mkPkg { };
 
@@ -348,83 +348,83 @@ with builtins; {
         mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            vData = versions.${version};
+            let
+              vData = versions.${version};
 
-            # Binary installation method
-            binaryPackage = pkgs.stdenv.mkDerivation rec {
-              pname = "omp-binary";
-              inherit version;
-              platform =
-                if pkgs.stdenv.hostPlatform.isLinux then "linux"
-                else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
-                else throw "Unsupported platform";
-              arch =
-                if pkgs.stdenv.hostPlatform.isx86_64 then "x64"
-                else if pkgs.stdenv.hostPlatform.isAarch64 then "arm64"
-                else throw "Unsupported architecture";
-              binaryName = "omp-${platform}-${arch}";
-              src = fetchurl {
-                url = "https://github.com/can1357/oh-my-pi/releases/download/${version}/${binaryName}";
-                sha256 = vData.sha256;
+              # Binary installation method
+              binaryPackage = pkgs.stdenv.mkDerivation rec {
+                pname = "omp-binary";
+                inherit version;
+                platform =
+                  if pkgs.stdenv.hostPlatform.isLinux then "linux"
+                  else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
+                  else throw "Unsupported platform";
+                arch =
+                  if pkgs.stdenv.hostPlatform.isx86_64 then "x64"
+                  else if pkgs.stdenv.hostPlatform.isAarch64 then "arm64"
+                  else throw "Unsupported architecture";
+                binaryName = "omp-${platform}-${arch}";
+                src = fetchurl {
+                  url = "https://github.com/can1357/oh-my-pi/releases/download/${version}/${binaryName}";
+                  sha256 = vData.sha256;
+                };
+
+                dontUnpack = true;
+                installPhase = ''
+                  mkdir -p $out/bin
+                  cp $src $out/bin/omp
+                  chmod +x $out/bin/omp
+                '';
+                passthru = { inherit versions mkPkg src; };
+                meta = {
+                  description = "OMP Coding Agent (prebuilt binary)";
+                  homepage = "https://github.com/can1357/oh-my-pi";
+                  platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+                };
               };
 
-              dontUnpack = true;
-              installPhase = ''
-                mkdir -p $out/bin
-                cp $src $out/bin/omp
-                chmod +x $out/bin/omp
-              '';
-              passthru = { inherit versions mkPkg src; };
-              meta = {
-                description = "OMP Coding Agent (prebuilt binary)";
-                homepage = "https://github.com/can1357/oh-my-pi";
-                platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-              };
-            };
+              # Source installation method (requires Bun)
+              # sourcePackage = stdenv.mkDerivation rec {
+              #   pname = "omp-source";
+              #   inherit version; # Specify actual version or commit hash
+              #   src = pkgs.fetchFromGitHub {
+              #     owner = "can1357";
+              #     repo = "oh-my-pi";
+              #     rev = "main"; # or specific commit hash
+              #     hash = vData.sha256;
+              #   };
+              #
+              #   nativeBuildInputs = [ bun git git-lfs makeWrapper ];
+              #
+              #   buildPhase = ''
+              #     # Pull LFS files if needed
+              #     git lfs pull
+              #
+              #     # Install the coding-agent package globally using bun
+              #     bun install
+              #     cd packages/coding-agent
+              #     bun install
+              #   '';
+              #
+              #   installPhase = ''
+              #     mkdir -p $out/bin
+              #
+              #     # Create wrapper script that runs the bun module
+              #     makeWrapper ${bun}/bin/bun $out/bin/omp \
+              #       --add-flags "run $src/packages/coding-agent/index.js" \
+              #       --set-default BUN_INSTALL "$HOME/.bun"
+              #   '';
+              #
+              #   meta = with lib; {
+              #     description = "OMP Coding Agent (installed from source via Bun)";
+              #     homepage = "https://github.com/can1357/oh-my-pi";
+              #     platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+              #   };
+              # };
 
-            # Source installation method (requires Bun)
-            # sourcePackage = stdenv.mkDerivation rec {
-            #   pname = "omp-source";
-            #   inherit version; # Specify actual version or commit hash
-            #   src = pkgs.fetchFromGitHub {
-            #     owner = "can1357";
-            #     repo = "oh-my-pi";
-            #     rev = "main"; # or specific commit hash
-            #     hash = vData.sha256;
-            #   };
-            #
-            #   nativeBuildInputs = [ bun git git-lfs makeWrapper ];
-            #
-            #   buildPhase = ''
-            #     # Pull LFS files if needed
-            #     git lfs pull
-            #
-            #     # Install the coding-agent package globally using bun
-            #     bun install
-            #     cd packages/coding-agent
-            #     bun install
-            #   '';
-            #
-            #   installPhase = ''
-            #     mkdir -p $out/bin
-            #
-            #     # Create wrapper script that runs the bun module
-            #     makeWrapper ${bun}/bin/bun $out/bin/omp \
-            #       --add-flags "run $src/packages/coding-agent/index.js" \
-            #       --set-default BUN_INSTALL "$HOME/.bun"
-            #   '';
-            #
-            #   meta = with lib; {
-            #     description = "OMP Coding Agent (installed from source via Bun)";
-            #     homepage = "https://github.com/can1357/oh-my-pi";
-            #     platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
-            #   };
-            # };
-
-          in
-          # Choose default method (binary is simpler with no runtime dependencies)
-          binaryPackage;
+            in
+            # Choose default method (binary is simpler with no runtime dependencies)
+            binaryPackage;
       in
       mkPkg { };
 
@@ -436,42 +436,42 @@ with builtins; {
         mkPkg = { version ? (l.latest versions), avx2 ? false, ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            vData = versions.${version} or (throw "Unsupported system/version: ${system} / ${version}");
-            os =
-              if pkgs.stdenv.hostPlatform.isLinux then "linux"
-              else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
-              else if pkgs.stdenv.hostPlatform.isWindows then "windows"
-              else throw "Unsupported OS: ${pkgs.stdenv.hostPlatform.system}";
-            arch = { x86_64 = "x64"; aarch64 = "arm64"; }.${pkgs.stdenv.hostPlatform.parsed.cpu.name}
-              or (throw "Unsupported architecture: ${pkgs.stdenv.hostPlatform.parsed.cpu.name}");
-            baselineSuffix = if arch == "x86_64" && !avx2 then "-baseline" else "";
-            muslSuffix = if pkgs.stdenv.hostPlatform.isMusl then "-musl" else "";
-            target = "${os}-${arch}${baselineSuffix}${muslSuffix}";
-            extension = if pkgs.stdenv.hostPlatform.isLinux then "tar.gz" else "zip";
-            src = pkgs.fetchzip {
-              url = "https://github.com/XiaomiMiMo/MiMo-Code/releases/download/v${version}/mimocode-${target}.${extension}";
-              sha256 = vData.sha256;
-              stripRoot = false;
+            let
+              vData = versions.${version} or (throw "Unsupported system/version: ${system} / ${version}");
+              os =
+                if pkgs.stdenv.hostPlatform.isLinux then "linux"
+                else if pkgs.stdenv.hostPlatform.isDarwin then "darwin"
+                else if pkgs.stdenv.hostPlatform.isWindows then "windows"
+                else throw "Unsupported OS: ${pkgs.stdenv.hostPlatform.system}";
+              arch = { x86_64 = "x64"; aarch64 = "arm64"; }.${pkgs.stdenv.hostPlatform.parsed.cpu.name}
+                or (throw "Unsupported architecture: ${pkgs.stdenv.hostPlatform.parsed.cpu.name}");
+              baselineSuffix = if arch == "x86_64" && !avx2 then "-baseline" else "";
+              muslSuffix = if pkgs.stdenv.hostPlatform.isMusl then "-musl" else "";
+              target = "${os}-${arch}${baselineSuffix}${muslSuffix}";
+              extension = if pkgs.stdenv.hostPlatform.isLinux then "tar.gz" else "zip";
+              src = pkgs.fetchzip {
+                url = "https://github.com/XiaomiMiMo/MiMo-Code/releases/download/v${version}/mimocode-${target}.${extension}";
+                sha256 = vData.sha256;
+                stripRoot = false;
+              };
+            in
+            pkgs.stdenv.mkDerivation {
+              pname = "mimocode";
+              inherit version src;
+              installPhase = ''
+                runHook preInstall
+                mkdir -p $out/bin
+                install -Dm755 $src/mimo $out/bin/mimo
+                runHook postInstall
+              '';
+              passthru = { inherit versions mkPkg src; };
+              meta = {
+                description = "MiMo Code – CLI tool from Xiaomi's coding assistant";
+                homepage = "https://mimo.xiaomi.com/coder/docs";
+                platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+                mainProgram = "mimo";
+              };
             };
-          in
-          pkgs.stdenv.mkDerivation {
-            pname = "mimocode";
-            inherit version src;
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/bin
-              install -Dm755 $src/mimo $out/bin/mimo
-              runHook postInstall
-            '';
-            passthru = { inherit versions mkPkg src; };
-            meta = {
-              description = "MiMo Code – CLI tool from Xiaomi's coding assistant";
-              homepage = "https://mimo.xiaomi.com/coder/docs";
-              platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
-              mainProgram = "mimo";
-            };
-          };
       in
       mkPkg { };
 
@@ -495,7 +495,7 @@ with builtins; {
         };
         mkPkg = { version ? (l.latest versions), ... }:
           let
-            vData = versions.${version} or (throw "Unsupported version: ${version}");
+            v = versions.${version} or (throw "Unsupported version: ${version}");
             # launcher.js PLATFORM_TARGETS naming: <os>-<arch> with
             # darwin/linux/win32 for os and x64/arm64 for arch. On
             # x86_64-linux we always fetch the AVX2 build (linux-x64); the
@@ -507,7 +507,7 @@ with builtins; {
               x86_64-linux = "linux-x64";
               aarch64-linux = "linux-arm64";
             }.${pkgs.stdenv.hostPlatform.system} or (throw "Unsupported system: ${pkgs.stdenv.hostPlatform.system}");
-            sha256 = vData.${target} or (throw "No hash for ${target} in version ${version}");
+            sha256 = v.${target} or (throw "No hash for ${target} in version ${version}");
             src = pkgs.fetchurl {
               url = "https://codebuff.com/api/releases/download/${version}/freebuff-${target}.tar.gz";
               inherit sha256;
