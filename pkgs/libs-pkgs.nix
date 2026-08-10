@@ -1,5 +1,5 @@
 with builtins; {
-  config.perSystem = { pkgs, l, lib, config, system, ... }: {
+  config.perSystem = { pkgs, lib, config, ... }: {
 
     ownPkgs.xcode-xip =
       let

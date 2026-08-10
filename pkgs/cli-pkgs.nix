@@ -1,5 +1,5 @@
 with builtins; {
-  config.perSystem = { pkgs, l, lib, config, system, ... }: {
+  config.perSystem = { pkgs, l, system, ... }: {
 
     ownPkgs.atlassian-cli =
       let

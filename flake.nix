@@ -9,7 +9,7 @@
   nixConfig.allow-unsafe-native-code-during-evaluation = true;
   nixConfig.allow-import-from-derivation = true;
 
-  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ lib, ... }: with builtins; let
+  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ lib, ... }: let
     l = (import ./utils/lib.p.nix { lib = lib; }).extraLib;
 
     # # NOTE: importApply injects thisFlake into module args (to distinguish from caller flake)

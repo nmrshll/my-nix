@@ -1,7 +1,7 @@
 # thisFlake:
 with builtins; let
-  flakeModules.git = { config, pkgs, ... }: {
-    perSystem = { config, pkgs, lib, ... }:
+  flakeModules.git = { ... }: {
+    perSystem = { pkgs, ... }:
       with builtins; let
         # l = lib // builtins;
         # sh_use_dbg = ''dbg_var() {  local var_name="$1";  if [ -n "''${!var_name}" ]; then  echo "$var_name=''${!var_name}";  else echo "DBG_VAR: $var_name is not set or is empty"; fi  }'';

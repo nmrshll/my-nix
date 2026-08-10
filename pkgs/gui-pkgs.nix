@@ -1,5 +1,5 @@
 {
-  config.perSystem = { pkgs, l, lib, config, system, ... }: {
+  config.perSystem = { pkgs, l, ... }: {
 
     ownPkgs.antigravity =
       let

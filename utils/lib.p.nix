@@ -1,4 +1,4 @@
-{ ctx ? { user = "me"; }, lib, ... }: with builtins; let
+{ lib, ... }: with builtins; let
 
   mkLib = { lib }: rec {
     dbgJSON = o: (trace (toJSON o) o);
@@ -96,7 +96,7 @@
   };
 
   # TODO should all lib go in here ???? legacy nixpkgs way vs new way ???
-  mkPkgsLib = { lib, pkgs ? null, system ? pkgs.hostPlatform.system, ... }: {
+  mkPkgsLib = { pkgs ? null, system ? pkgs.hostPlatform.system, ... }: {
     throwSystem = throw "Unsupported system: ${system}";
     forSystem = perSystemAttrs: perSystemAttrs.${system} or throwSystem;
 

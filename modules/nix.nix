@@ -1,7 +1,7 @@
 # thisFlake:
 with builtins; let
-  flakeModules.nix = { config, pkgs, ... }: {
-    perSystem = { config, pkgs, lib, ... }:
+  flakeModules.nix = { ... }: {
+    perSystem = { pkgs, ... }:
       with builtins; let
         scripts = mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
           # NIX commands

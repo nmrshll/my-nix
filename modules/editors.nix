@@ -1,6 +1,6 @@
 # thisFlake:
 with builtins; let
-  flakeModules.editors = { config, pkgs, ... }: {
+  flakeModules.editors = { ... }: {
     # TODO
     perSystem = { pkgs, config, lib, ... }:
       with builtins; let

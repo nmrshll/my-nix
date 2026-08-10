@@ -1,5 +1,5 @@
 with builtins; let
-  flakeModules.solana = part@{ config, l, ... }: {
+  flakeModules.solana = part@{ l, ... }: {
     perSystem = { pkgs, lib, ... }:
       let
         crane = part.config.flakeInputsOf.my-nix.crane;

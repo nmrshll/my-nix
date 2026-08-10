@@ -1,7 +1,7 @@
 # AI infrastructure & inference engines: packages that run, serve, or route AI,
 # plus AI-powered tools (as opposed to ai-agents.nix, which holds AI coding agents).
 with builtins; {
-  config.perSystem = { pkgs, l, lib, config, system, ... }: {
+  config.perSystem = { pkgs, l, lib, system, ... }: {
 
     ownPkgs.cactus =
       let
@@ -203,35 +203,35 @@ with builtins; {
         mkPkg = { version ? (l.latest versions), ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            versionInfo = versions.${version};
-            url = "https://github.com/jundot/omlx/releases/download/v${versionInfo.number}/oMLX-${version}.dmg";
-            src = pkgs.fetchurl { inherit url; sha256 = versionInfo.sha256; };
-            dotApp = pkgs.lib.darwin.installDmg {
-              inherit url;
-              inherit version;
-              sha256 = versionInfo.sha256;
-              appname = "oMLX";
-              meta = { description = "Local AI inference for Apple MLX."; homepage = "https://github.com/jundot/omlx"; };
-            };
-          in
-          (pkgs.symlinkJoin {
-            name = "omlx-${version}";
-            paths = [ dotApp ];
-            nativeBuildInputs = [ pkgs.makeWrapper ];
-            postBuild = ''
-              mkdir -p $out/bin
+            let
+              versionInfo = versions.${version};
+              url = "https://github.com/jundot/omlx/releases/download/v${versionInfo.number}/oMLX-${version}.dmg";
+              src = pkgs.fetchurl { inherit url; sha256 = versionInfo.sha256; };
+              dotApp = pkgs.lib.darwin.installDmg {
+                inherit url;
+                inherit version;
+                sha256 = versionInfo.sha256;
+                appname = "oMLX";
+                meta = { description = "Local AI inference for Apple MLX."; homepage = "https://github.com/jundot/omlx"; };
+              };
+            in
+            (pkgs.symlinkJoin {
+              name = "omlx-${version}";
+              paths = [ dotApp ];
+              nativeBuildInputs = [ pkgs.makeWrapper ];
+              postBuild = ''
+                mkdir -p $out/bin
 
-              # Define the path to the actual binary inside the app bundle
-              APP_BIN="$out/Applications/oMLX.app/Contents/MacOS/omlx-cli"
+                # Define the path to the actual binary inside the app bundle
+                APP_BIN="$out/Applications/oMLX.app/Contents/MacOS/omlx-cli"
 
-              # Create a wrapper instead of a symlink.
-              # This prefixes the PATH with the location of python3 and the app's internal MacOS folder
-              # so that the script can find 'python3' and its sibling files.
-              makeWrapper "$APP_BIN" "$out/bin/omlx" \
-                --prefix PATH : "${lib.makeBinPath [ pkgs.python3 ]}:$(dirname "$APP_BIN")"
-            '';
-          }) // { passthru = { inherit versions mkPkg src; }; };
+                # Create a wrapper instead of a symlink.
+                # This prefixes the PATH with the location of python3 and the app's internal MacOS folder
+                # so that the script can find 'python3' and its sibling files.
+                makeWrapper "$APP_BIN" "$out/bin/omlx" \
+                  --prefix PATH : "${lib.makeBinPath [ pkgs.python3 ]}:$(dirname "$APP_BIN")"
+              '';
+            }) // { passthru = { inherit versions mkPkg src; }; };
       in
       mkPkg { };
 

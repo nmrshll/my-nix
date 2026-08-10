@@ -50,7 +50,7 @@ with builtins; let
   };
 
   flakeModules.darwinPkgsLib = { ... }: {
-    config.perSystem = { system, pkgs, l, ... }: {
+    config.perSystem = { pkgs, l, ... }: {
       # NOTE: defined on all systems (not just darwin) so that forcing `pkgs.lib`
       # (e.g. while evaluating ownPkgs on linux) doesn't hit an undefined option.
       # installDmg is only *called* by packages that null-guard themselves to darwin.

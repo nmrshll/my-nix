@@ -1,10 +1,10 @@
 # thisFlake:
 with builtins; let
-  flakeModules.services = { config, pkgs, ... }: {
-    perSystem = { config, pkgs, lib, ... }:
+  flakeModules.services = { ... }: {
+    perSystem = { pkgs, ... }:
       with builtins; let
 
-        bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts);
+        bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") scripts;
 
         wdname = "$(basename ${wd})";
         wd = "$(git rev-parse --show-toplevel)";

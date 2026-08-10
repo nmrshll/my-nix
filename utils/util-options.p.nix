@@ -33,7 +33,7 @@ with builtins; let
   # # WHY: if a flakeModule adds to "packages" output directly, then consumers of the module will also get "packages" polluted.
   # # This module lets flakeModules add packages to expose as outputs of this flake, but not consumer flakes.
   # TODO local/exposed version of all outputs
-  flakeModules.exposePkgs = { self, ... }: {
+  flakeModules.exposePkgs = { ... }: {
     config.perSystem = { l, ... }: {
       options.expose.packages = l.mkOption { type = l.types.nestedAttrs l.types.package; default = { }; };
     };
@@ -63,7 +63,7 @@ with builtins; let
   # use the passthru attrs `versions` and `mkPkg` (and `src` when the package
   # is built from a single download).
 
-  flakeModules.ownPkgs2 = part@{ l, ... }: {
+  flakeModules.ownPkgs2 = { ... }: {
     imports = [
       ../pkgs/ai-providers.nix
       ../pkgs/ai-agents.nix
@@ -73,7 +73,7 @@ with builtins; let
       ../pkgs/libs-pkgs.nix
       ../pkgs/service-pkgs.nix
     ];
-    config.perSystem = perSys@{ pkgs, config, l, system, ... }: {
+    config.perSystem = perSys@{ l, ... }: {
       options.ownPkgs = l.mkOption { type = l.types.attrsOf l.types.unspecified; default = { }; };
       config.pkgs.overlays = [
         (final: prev: { own = (prev.own or { }) // (l.filterAttrs (n: v: v != null) perSys.config.ownPkgs); })

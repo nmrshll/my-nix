@@ -1,6 +1,6 @@
 # thisFlake:
 with builtins; let
-  flakeModules.rust = part@{ self, config, pkgs, inputs, ... }: {
+  flakeModules.rust = part@{ self, ... }: {
     perSystem = { pkgs, config, l, lib, ... }:
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { /* inherit (pkgs); */ });

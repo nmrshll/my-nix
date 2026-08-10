@@ -1,5 +1,5 @@
 with builtins; {
-  config.perSystem = { pkgs, l, lib, config, system, ... }: {
+  config.perSystem = { pkgs, l, lib, system, ... }: {
 
     ownPkgs.pi-coding-agent =
       let
