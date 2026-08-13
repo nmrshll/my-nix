@@ -487,13 +487,28 @@ with builtins; {
     #   https://github.com/CodebuffAI/codebuff-community/releases/download/freebuff-v${version}/
     ownPkgs.freebuff =
       let
+        versions."0.0.148" = {
+          darwin-arm64 = "1nwnx82is8a9sbl8ypw486p4qqcmzbp8cmv2ijklmvpz5brwhf8s";
+          darwin-x64 = "1yd8xwnm1952lbakpvblr054i9gjb5x9y8jcwgjym8l8ag99ffa0";
+          linux-x64 = "0zjfnkzh787n7wz3ykzr8nkc02j4lim5i7klss76b6mb70hqicma";
+          linux-arm64 = "0kdf3k2as2fqm02wyfc3xs7kq207qricjbcdcskqgm58sdja6sh6";
+        };
         versions."0.0.142" = {
           darwin-arm64 = "1fiw69wazlj0v9kx75scs7c6wc467lmra0dyz1205qxj6vl404wm";
           darwin-x64 = "1jh1yffmj3n43l3ihsxjx7k15337xar0k1cn31322qms7qsm6mjd";
           linux-x64 = "10hxjqqn0zsf44pcgihf8fc8w7xvl967aznswxcidggb6xv7kraa";
           linux-arm64 = "1cbhnigv4afghm7ncv9xlxa08mija4529blrcg484zaqyxyfz4lf";
         };
-        mkPkg = { version ? (l.latest versions), ... }:
+        # NOTE: freebuff ships as a compiled Bun binary with no sources in
+        # the tarball, so `patches` is currently inert: a source-level diff
+        # cannot apply (only `freebuff` + `tree-sitter.wasm` exist), and
+        # byte-patching the binary trips an integrity check (SIGKILL at
+        # startup). It is wired through anyway so a future source build can
+        # use it. To make freebuff detect Brave today, symlink one of its
+        # hardcoded Chrome paths to the Brave binary from outside (e.g. a
+        # home-manager activation script); chromeAvailable only runs
+        # fs.existsSync, which follows symlinks.
+        mkPkg = { version ? (l.latest versions), patches ? [ ], ... }:
           let
             v = versions.${version} or (throw "Unsupported version: ${version}");
             # launcher.js PLATFORM_TARGETS naming: <os>-<arch> with
@@ -515,7 +530,7 @@ with builtins; {
           in
           pkgs.stdenv.mkDerivation {
             pname = "freebuff";
-            inherit version src;
+            inherit version src patches;
             # The tarball unpacks to the freebuff binary + a tree-sitter.wasm
             # sidecar (used at runtime for code parsing), both at the top level
             # (no enclosing directory), so unpackPhase can't auto-detect a
@@ -540,7 +555,7 @@ with builtins; {
               install -Dm644 tree-sitter.wasm $out/bin/tree-sitter.wasm
               runHook postInstall
             '';
-            passthru = { inherit versions mkPkg src; };
+            passthru = { inherit versions mkPkg src patches; };
             meta = {
               description = "The world's strongest free coding agent";
               homepage = "https://codebuff.com";
