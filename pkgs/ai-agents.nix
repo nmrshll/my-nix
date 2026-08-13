@@ -569,5 +569,43 @@ with builtins; {
       in
       mkPkg { };
 
+    # `freebuff-launcher` packages the official npm wrapper (`freebuff` package on npm).
+    # Unlike `own.freebuff` (which pins a fixed precompiled binary per system),
+    # the launcher downloads and updates the runtime compiled CLI binary dynamically
+    # into `~/.config/manicode/freebuff` on execution.
+    ownPkgs.freebuff-launcher =
+      let
+        version = "0.0.148";
+      in
+      pkgs.buildNpmPackage {
+        pname = "freebuff-launcher";
+        inherit version;
+
+        src = pkgs.fetchurl {
+          url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
+          sha256 = "0n7m0q33pc73nzl2vv95k53drssz22crhyh5z8p7jc2nzkd2x9gg";
+        };
+
+        postPatch = ''
+          cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
+        '';
+        npmDepsHash = pkgs.lib.fakeHash;
+        dontNpmBuild = true;
+        npmPackFlags = [ "--ignore-scripts" ];
+
+        postInstall = ''
+          ln -s $out/bin/freebuff $out/bin/freebuff-launcher
+        '';
+
+        meta = {
+          description = "Official auto-updating Node.js launcher for Freebuff CLI";
+          homepage = "https://codebuff.com";
+          downloadPage = "https://www.npmjs.com/package/freebuff";
+          license = pkgs.lib.licenses.mit;
+          mainProgram = "freebuff-launcher";
+        };
+      };
+
   };
 }
+
