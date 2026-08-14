@@ -17,13 +17,8 @@
         bash.wd = "$(git rev-parse --show-toplevel)";
         scripts = with bash; l.mapAttrs pkgs.writeShellScriptBin {
           dotenv = ''
-            if [ -f "${wd}/.env" ]; then
-                source "${wd}/.env";
-                case "$(uname -s)" in
-                    Linux*)     export $(grep -v '^#' "${wd}/.env" | xargs) ;;
-                    Darwin*)    vars="$(grep -v -e '^#' -e '^[[:space:]]*$' "${wd}/.env" | cut -d= -f1)"; [ -n "$vars" ] && export $vars; true ;;
-                esac
-            fi
+            # Source .env with `set -a` so quoted values (containing spaces) survive
+            set -a; [ -f "${wd}/.env" ] && . "${wd}/.env" || true; set +a
           '';
 
           setdotenv = ''
