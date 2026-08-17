@@ -581,37 +581,45 @@ with builtins; {
     # into `~/.config/manicode/freebuff` on execution.
     ownPkgs.freebuff-launcher =
       let
-        version = "0.0.149";
-      in
-      pkgs.buildNpmPackage {
-        pname = "freebuff-launcher";
-        inherit version;
-
-        src = pkgs.fetchurl {
-          url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
+        versions."0.0.149" = {
           sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
+          npmDepsHash = "sha256-oeMCyaabCVIWMoDAvijTI44ab4wBgZ41GfISH/fXamM=";
         };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let
+            vData = versions.${version} or (throw "Unsupported version: ${version}");
+          in
+          pkgs.buildNpmPackage {
+            pname = "freebuff-launcher";
+            inherit version;
 
-        postPatch = ''
-          cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
-        '';
-        npmDepsHash = pkgs.lib.fakeHash;
-        dontNpmBuild = true;
-        npmPackFlags = [ "--ignore-scripts" ];
+            src = pkgs.fetchurl {
+              url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
+              sha256 = vData.sha256;
+            };
 
-        postInstall = ''
-          ln -s $out/bin/freebuff $out/bin/freebuff-launcher
-        '';
+            postPatch = ''
+              cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
+            '';
+            npmDepsHash = vData.npmDepsHash;
+            dontNpmBuild = true;
+            npmPackFlags = [ "--ignore-scripts" ];
 
-        meta = {
-          description = "Official auto-updating Node.js launcher for Freebuff CLI";
-          homepage = "https://codebuff.com";
-          downloadPage = "https://www.npmjs.com/package/freebuff";
-          license = pkgs.lib.licenses.mit;
-          mainProgram = "freebuff-launcher";
-        };
-      };
+            postInstall = ''
+              ln -s $out/bin/freebuff $out/bin/freebuff-launcher
+            '';
+
+            passthru = { inherit versions mkPkg src; };
+            meta = {
+              description = "Official auto-updating Node.js launcher for Freebuff CLI";
+              homepage = "https://codebuff.com";
+              downloadPage = "https://www.npmjs.com/package/freebuff";
+              license = pkgs.lib.licenses.mit;
+              mainProgram = "freebuff-launcher";
+            };
+          };
+      in
+      mkPkg { };
 
   };
 }
-
