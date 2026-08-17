@@ -487,6 +487,12 @@ with builtins; {
     #   https://github.com/CodebuffAI/codebuff-community/releases/download/freebuff-v${version}/
     ownPkgs.freebuff =
       let
+        versions."0.0.149" = {
+          darwin-arm64 = "1skwc6g1lg0paswv2p2mjwh2zx5vi6bk4yprsi4i8gsp778nla19";
+          darwin-x64 = "0wc86wm8fq7gllb63wci22nghaa0fz5c9sglvfwmjrvpx3jwn6vm";
+          linux-x64 = "0gfa6dkm5h9zdxwvx4q2dkqvarsxabxx2gc2m6ymvwbink1z449z";
+          linux-arm64 = "0266ym4ljr1b6dpi3s89nilk74r26383763pcnrr81bb20z0hh96";
+        };
         versions."0.0.148" = {
           darwin-arm64 = "1nwnx82is8a9sbl8ypw486p4qqcmzbp8cmv2ijklmvpz5brwhf8s";
           darwin-x64 = "1yd8xwnm1952lbakpvblr054i9gjb5x9y8jcwgjym8l8ag99ffa0";
@@ -575,7 +581,7 @@ with builtins; {
     # into `~/.config/manicode/freebuff` on execution.
     ownPkgs.freebuff-launcher =
       let
-        version = "0.0.148";
+        version = "0.0.149";
       in
       pkgs.buildNpmPackage {
         pname = "freebuff-launcher";
@@ -583,7 +589,7 @@ with builtins; {
 
         src = pkgs.fetchurl {
           url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
-          sha256 = "0n7m0q33pc73nzl2vv95k53drssz22crhyh5z8p7jc2nzkd2x9gg";
+          sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
         };
 
         postPatch = ''
