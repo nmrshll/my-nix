@@ -116,31 +116,31 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.claw-code =
-      let
-        versions."0.1.0_20260410" = { sha256 = "TqTrehnOyj/yExzADQTESmPU44ccwsVJM6pBd/DBHKA="; rev = "8aa1fa2cc931007f537854b1b0f0b61fdc986a50"; };
-        # versions."0.1.0" = { sha256 = "ngAd6WjyvVAKotPY0Tl9ea8DpQuSGkrclZdyiGpnyDo="; rev = "be561bfdeb92fce7011938e748ee20051460d6a4"; };
+    # ownPkgs.claw-code =
+    #   let
+    #     versions."0.1.0_20260410" = { sha256 = "TqTrehnOyj/yExzADQTESmPU44ccwsVJM6pBd/DBHKA="; rev = "8aa1fa2cc931007f537854b1b0f0b61fdc986a50"; };
+    #     # versions."0.1.0" = { sha256 = "ngAd6WjyvVAKotPY0Tl9ea8DpQuSGkrclZdyiGpnyDo="; rev = "be561bfdeb92fce7011938e748ee20051460d6a4"; };
 
-        mkPkg = { version ? (l.latest versions), ... }:
-          let
-            vData = versions.${version} or (throw "Unsupported system or version: ${system} / ${version}");
-            src = pkgs.fetchFromGitHub {
-              owner = "ultraworkers";
-              repo = "claw-code";
-              rev = vData.rev;
-              sha256 = vData.sha256;
-            };
-          in
-          pkgs.rustPlatform.buildRustPackage {
-            pname = "claw";
-            version = version;
-            src = "${src}/rust";
-            cargoLock.lockFile = "${src}/Cargo.lock";
-            doCheck = false; # Some tests are network-based, which won't work in a nix derivation
-            passthru = { inherit versions mkPkg src; };
-          };
-      in
-      mkPkg { };
+    #     mkPkg = { version ? (l.latest versions), ... }:
+    #       let
+    #         vData = versions.${version} or (throw "Unsupported system or version: ${system} / ${version}");
+    #         src = pkgs.fetchFromGitHub {
+    #           owner = "ultraworkers";
+    #           repo = "claw-code";
+    #           rev = vData.rev;
+    #           sha256 = vData.sha256;
+    #         };
+    #       in
+    #       pkgs.rustPlatform.buildRustPackage {
+    #         pname = "claw";
+    #         version = version;
+    #         src = "${src}/rust";
+    #         cargoLock.lockFile = "${src}/Cargo.lock";
+    #         doCheck = false; # Some tests are network-based, which won't work in a nix derivation
+    #         passthru = { inherit versions mkPkg src; };
+    #       };
+    #   in
+    #   mkPkg { };
 
     ownPkgs.poolside-cli =
       let
@@ -579,47 +579,47 @@ with builtins; {
     # Unlike `own.freebuff` (which pins a fixed precompiled binary per system),
     # the launcher downloads and updates the runtime compiled CLI binary dynamically
     # into `~/.config/manicode/freebuff` on execution.
-    ownPkgs.freebuff-launcher =
-      let
-        versions."0.0.149" = {
-          sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
-          npmDepsHash = "sha256-oeMCyaabCVIWMoDAvijTI44ab4wBgZ41GfISH/fXamM=";
-        };
-        mkPkg = { version ? (l.latest versions), ... }:
-          let
-            vData = versions.${version} or (throw "Unsupported version: ${version}");
-          in
-          pkgs.buildNpmPackage {
-            pname = "freebuff-launcher";
-            inherit version;
+    # ownPkgs.freebuff-launcher =
+    #   let
+    #     versions."0.0.149" = {
+    #       sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
+    #       npmDepsHash = "sha256-oeMCyaabCVIWMoDAvijTI44ab4wBgZ41GfISH/fXamM=";
+    #     };
+    #     mkPkg = { version ? (l.latest versions), ... }:
+    #       let
+    #         vData = versions.${version} or (throw "Unsupported version: ${version}");
+    #       in
+    #       pkgs.buildNpmPackage {
+    #         pname = "freebuff-launcher";
+    #         inherit version;
 
-            src = pkgs.fetchurl {
-              url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
-              sha256 = vData.sha256;
-            };
+    #         src = pkgs.fetchurl {
+    #           url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
+    #           sha256 = vData.sha256;
+    #         };
 
-            postPatch = ''
-              cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
-            '';
-            npmDepsHash = vData.npmDepsHash;
-            dontNpmBuild = true;
-            npmPackFlags = [ "--ignore-scripts" ];
+    #         postPatch = ''
+    #           cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
+    #         '';
+    #         npmDepsHash = vData.npmDepsHash;
+    #         dontNpmBuild = true;
+    #         npmPackFlags = [ "--ignore-scripts" ];
 
-            postInstall = ''
-              ln -s $out/bin/freebuff $out/bin/freebuff-launcher
-            '';
+    #         postInstall = ''
+    #           ln -s $out/bin/freebuff $out/bin/freebuff-launcher
+    #         '';
 
-            passthru = { inherit versions mkPkg src; };
-            meta = {
-              description = "Official auto-updating Node.js launcher for Freebuff CLI";
-              homepage = "https://codebuff.com";
-              downloadPage = "https://www.npmjs.com/package/freebuff";
-              license = pkgs.lib.licenses.mit;
-              mainProgram = "freebuff-launcher";
-            };
-          };
-      in
-      mkPkg { };
+    #         passthru = { inherit versions mkPkg src; };
+    #         meta = {
+    #           description = "Official auto-updating Node.js launcher for Freebuff CLI";
+    #           homepage = "https://codebuff.com";
+    #           downloadPage = "https://www.npmjs.com/package/freebuff";
+    #           license = pkgs.lib.licenses.mit;
+    #           mainProgram = "freebuff-launcher";
+    #         };
+    #       };
+    #   in
+    #   mkPkg { };
 
     # DeepSeek Harness (dsh) — open-source agent harness by DeepSeek AI.
     # Everything-is-a-plugin architecture powered by Cordis.
@@ -627,30 +627,35 @@ with builtins; {
     ownPkgs.deepseek-harness =
       let
         versions."0.1.0-rc.8" = {
-          sha256 = "sha256-0bpdqkhach86crgbr2bimdslibj4qy2lvw84jdbymsp4imgyhd0p";
-          npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          sha256 = lib.fakeSha256;
+          pnpmDepsHash = "sha256-+PsdK9u3ZKv4XtSc8tBKKP48J/95/CGTMIUf8Q8dbok=";
         };
         mkPkg = { version ? (l.latest versions), ... }:
           let
             vData = versions.${version};
+            nodejs = pkgs.nodejs_24;
+            pnpm = pkgs.pnpm_11;
             src = pkgs.fetchFromGitHub {
               owner = "deepseek-ai";
               repo = "deepseek-harness";
               rev = "dsh-v${version}";
               sha256 = vData.sha256;
             };
+            pnpmDeps = pkgs.fetchPnpmDeps {
+              inherit src;
+              pname = "deepseek-harness-pnpm-deps";
+              hash = vData.pnpmDepsHash;
+              fetcherVersion = 4;
+            };
           in
-          pkgs.buildNpmPackage rec {
+          pkgs.stdenv.mkDerivation rec {
             pname = "deepseek-harness";
             inherit version src;
-            npmDepsHash = vData.npmDepsHash;
-
-            # Requires Node.js ^22.19.0 || >=24.0.0
-            nodejs = pkgs.nodejs_24;
 
             nativeBuildInputs = [
-              pkgs.pnpm_11
-              pkgs.nodejs_24
+              pnpm
+              nodejs
+              pkgs.pnpmConfigHook
               pkgs.makeWrapper
               pkgs.git
             ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
@@ -663,9 +668,7 @@ with builtins; {
               pkgs.libsecret
             ];
 
-            # pnpm npmConfigHook installs deps; we run the build ourselves
-            # because pnpm run build requires npm_execpath which the hook sets.
-            npmBuildScript = "build";
+            inherit pnpmDeps;
 
             # Neutralise the lefthook postinstall script (git hooks are not
             # needed inside the Nix build sandbox).
@@ -675,9 +678,15 @@ with builtins; {
               fi
             '';
 
-            preBuild = ''
+            buildPhase = ''
+              runHook preBuild
+
               # Inject a fake git hash for the build (no .git in Nix sandbox)
               export DSH_CLIENT_COMMIT_HASH="0000000"
+
+              pnpm run build
+
+              runHook postBuild
             '';
 
             installPhase = ''
@@ -694,7 +703,7 @@ with builtins; {
               runHook postInstall
             '';
 
-            passthru = { inherit versions mkPkg src; };
+            passthru = { inherit versions mkPkg src pnpmDeps; };
 
             meta = {
               description = "DeepSeek Harness — open-source agent harness with everything-is-a-plugin architecture";

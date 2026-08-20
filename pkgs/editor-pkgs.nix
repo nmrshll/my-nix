@@ -18,12 +18,12 @@
           pkgs.buildNpmPackage rec {
             inherit version src pname;
 
-            pnpmDeps = pkgs.pnpm.fetchDeps {
+            pnpmDeps = pkgs.fetchPnpmDeps {
               inherit pname version src;
-              fetcherVersion = 2;
+              fetcherVersion = 3;
               hash = "sha256-qqIdSF41gv4EDxEKP0sfpW1xW+3SMES9oGf2ru1lUnE=";
             };
-            npmConfigHook = pkgs.pnpm.configHook;
+            npmConfigHook = pkgs.pnpmConfigHook;
             npmDeps = pnpmDeps;
             dontNpmPrune = true; # hangs forever on both Linux/darwin
 
@@ -90,20 +90,20 @@
         mkPkg = { version ? "0.2025.07.02.08.36.stable_02", ... }:
           if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
           else
-          let
-            url = pkgs.lib.forSystem {
-              aarch64-darwin = "https://releases.warp.dev/stable/v${version}/Warp.dmg";
+            let
+              url = pkgs.lib.forSystem {
+                aarch64-darwin = "https://releases.warp.dev/stable/v${version}/Warp.dmg";
+              };
+              sha256 = versions.${version}.sha256;
+              src = pkgs.fetchurl { inherit url sha256; };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit url version;
+              sha256 = versions.${version}.sha256;
+              appname = "Warp";
+              meta = { description = "The Agentic Development Environment (it's actually a terminal)"; homepage = "https://warp.dev/"; };
+              passthru = { inherit versions mkPkg src; };
             };
-            sha256 = versions.${version}.sha256;
-            src = pkgs.fetchurl { inherit url sha256; };
-          in
-          pkgs.lib.darwin.installDmg {
-            inherit url version;
-            sha256 = versions.${version}.sha256;
-            appname = "Warp";
-            meta = { description = "The Agentic Development Environment (it's actually a terminal)"; homepage = "https://warp.dev/"; };
-            passthru = { inherit versions mkPkg src; };
-          };
       in
       mkPkg { };
 
