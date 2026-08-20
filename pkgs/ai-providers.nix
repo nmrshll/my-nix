@@ -77,17 +77,25 @@ with builtins; {
           npmDepsHash = "sha256-R0u93MLUUWC8xFgq4S0Aj/7wg4pygTKwxP/eWkWMgCw=";
           npmDistHash = "sha256-fcGsAxOdv1ZSwt24eHJu97lyRATKBw8rYeFvGTRhxYs=";
         };
+        versions."3.8.50" = {
+          sha256 = "sha256-Cjtt2jv/65tkz23QdDkj53iX3X54U4PgNXJ0OYD/eLI=";
+          npmDepsHash = "sha256-nFa72z6Xwbbbgb0ub0b5XeeYkiSZalpFhQL5qn7PJV4=";
+          rev = "release/v3.8.50";
+        };
         mkPkg = { version ? (l.latest versions), ... }:
           let
-            npmTarball = pkgs.fetchurl {
+            vInfo = versions.${version};
+            hasDistTarball = vInfo ? npmDistHash;
+            npmTarball = if hasDistTarball then pkgs.fetchurl {
               url = "https://registry.npmjs.org/omniroute/-/omniroute-${version}.tgz";
-              hash = versions.${version}.npmDistHash;
-            };
+              hash = vInfo.npmDistHash;
+            } else null;
           in
           pkgs.buildNpmPackage rec {
             pname = "omniroute";
             inherit version;
-            npmDepsHash = versions.${version}.npmDepsHash;
+            npmDepsHash = vInfo.npmDepsHash;
+            npmDepsFetcherVersion = if !hasDistTarball then 2 else null;
 
             # Runtime: Node 24 (NODE_MODULE_VERSION 137). omniroute's engines
             # allow '>=22 <23 || >=24 <27'; build and run on nodejs_24 so
@@ -99,8 +107,8 @@ with builtins; {
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
               repo = "OmniRoute";
-              rev = "v${version}";
-              sha256 = versions.${version}.sha256;
+              rev = vInfo.rev or "v${version}";
+              sha256 = vInfo.sha256;
             };
 
             nativeBuildInputs = [
@@ -117,10 +125,16 @@ with builtins; {
 
             npmFlags = [ "--ignore-scripts" ];
 
-            # Skip the heavy Next.js build (next build needs Google Fonts fetch
-            # which fails in Nix sandbox). We inject the prebuilt dist/ from
-            # the npm tarball in installPhase instead.
-            dontNpmBuild = true;
+            # When a dist tarball is available (npmDistHash present), skip
+            # the heavy Next.js build and inject the prebuilt dist/ from the
+            # tarball in installPhase.  When no tarball exists yet (new version
+            # not published to npm), build from source with Google Fonts
+            # download disabled (they fail in the Nix sandbox).
+            dontNpmBuild = hasDistTarball;
+
+            preBuild = pkgs.lib.optionalString (!hasDistTarball) ''
+              export NEXT_FONT_GOOGLE_DOWNLOADS_DISABLED=1
+            '';
 
             installPhase = ''
               runHook preInstall
@@ -132,9 +146,14 @@ with builtins; {
               (cd node_modules/better-sqlite3 && node ../.bin/node-gyp rebuild 2>&1)
               (cd node_modules/wreq-js && node ../.bin/node-gyp rebuild 2>&1) || true
 
+              ${if hasDistTarball then ''
               # Inject prebuilt dist/ from npm tarball — this avoids running
               # the Next.js build (next/font/google fetches fail in sandbox)
               tar xzf ${npmTarball} --strip=1 -C . package/dist/
+              '' else ''
+              # Source build: next build produced .build/next/standalone
+              cp -r .build/next/standalone dist
+              ''}
 
               # Replace stub modules in dist/node_modules/ with full copies
               # from root node_modules/. The Next.js standalone bundles only
