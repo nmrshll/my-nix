@@ -95,7 +95,12 @@ with builtins; {
             pname = "omniroute";
             inherit version;
             npmDepsHash = vInfo.npmDepsHash;
-            npmDepsFetcherVersion = if !hasDistTarball then 2 else null;
+            # Dist-tarball versions (3.8.48/3.8.49) use the default fetcher v1
+            # (their npmDepsHash was computed with it); source builds without a
+            # dist tarball (3.8.50) need v2 for packument caching. Passing null
+            # breaks nixpkgs 26.05's buildNpmPackage, which sets
+            # NIX_NPM_FETCHER_VERSION unconditionally.
+            npmDepsFetcherVersion = if hasDistTarball then 1 else 2;
 
             # Runtime: Node 24 (NODE_MODULE_VERSION 137). omniroute's engines
             # allow '>=22 <23 || >=24 <27'; build and run on nodejs_24 so
