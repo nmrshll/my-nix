@@ -621,5 +621,91 @@ with builtins; {
       in
       mkPkg { };
 
+    # DeepSeek Harness (dsh) — open-source agent harness by DeepSeek AI.
+    # Everything-is-a-plugin architecture powered by Cordis.
+    # https://github.com/deepseek-ai/deepseek-harness
+    ownPkgs.deepseek-harness =
+      let
+        versions."0.1.0-rc.8" = {
+          sha256 = "sha256-0bpdqkhach86crgbr2bimdslibj4qy2lvw84jdbymsp4imgyhd0p";
+          npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let
+            vData = versions.${version};
+            src = pkgs.fetchFromGitHub {
+              owner = "deepseek-ai";
+              repo = "deepseek-harness";
+              rev = "dsh-v${version}";
+              sha256 = vData.sha256;
+            };
+          in
+          pkgs.buildNpmPackage rec {
+            pname = "deepseek-harness";
+            inherit version src;
+            npmDepsHash = vData.npmDepsHash;
+
+            # Requires Node.js ^22.19.0 || >=24.0.0
+            nodejs = pkgs.nodejs_24;
+
+            nativeBuildInputs = [
+              pkgs.pnpm_11
+              pkgs.nodejs_24
+              pkgs.makeWrapper
+              pkgs.git
+            ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.pkg-config
+            ];
+
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.glib
+              pkgs.nss
+              pkgs.libsecret
+            ];
+
+            # pnpm npmConfigHook installs deps; we run the build ourselves
+            # because pnpm run build requires npm_execpath which the hook sets.
+            npmBuildScript = "build";
+
+            # Neutralise the lefthook postinstall script (git hooks are not
+            # needed inside the Nix build sandbox).
+            preConfigure = ''
+              if [ -f scripts/install-lefthook.mjs ]; then
+                echo '#!/bin/sh' > scripts/install-lefthook.mjs
+              fi
+            '';
+
+            preBuild = ''
+              # Inject a fake git hash for the build (no .git in Nix sandbox)
+              export DSH_CLIENT_COMMIT_HASH="0000000"
+            '';
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out/lib/node_modules/deepseek-harness
+              cp -r . $out/lib/node_modules/deepseek-harness/
+
+              mkdir -p $out/bin
+              makeWrapper ${nodejs}/bin/node $out/bin/dsh \
+                --add-flags "$out/lib/node_modules/deepseek-harness/apps/cli/lib/bin.js" \
+                --prefix PATH : ${lib.makeBinPath [ nodejs ]}
+
+              runHook postInstall
+            '';
+
+            passthru = { inherit versions mkPkg src; };
+
+            meta = {
+              description = "DeepSeek Harness — open-source agent harness with everything-is-a-plugin architecture";
+              homepage = "https://github.com/deepseek-ai/deepseek-harness";
+              license = pkgs.lib.licenses.mit;
+              mainProgram = "dsh";
+              platforms = pkgs.lib.platforms.unix;
+            };
+          };
+      in
+      mkPkg { };
+
   };
 }
