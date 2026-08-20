@@ -627,7 +627,7 @@ with builtins; {
     ownPkgs.deepseek-harness =
       let
         versions."0.1.0-rc.8" = {
-          sha256 = lib.fakeSha256;
+          sha256 = "sha256-FzToX43k6upXkwTxTYXHRK5IdatxibxeZgZBpuDE7S4=";
           pnpmDepsHash = "sha256-+PsdK9u3ZKv4XtSc8tBKKP48J/95/CGTMIUf8Q8dbok=";
         };
         mkPkg = { version ? (l.latest versions), ... }:
