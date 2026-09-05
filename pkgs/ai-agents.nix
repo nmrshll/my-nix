@@ -579,47 +579,98 @@ with builtins; {
     # Unlike `own.freebuff` (which pins a fixed precompiled binary per system),
     # the launcher downloads and updates the runtime compiled CLI binary dynamically
     # into `~/.config/manicode/freebuff` on execution.
-    # ownPkgs.freebuff-launcher =
-    #   let
-    #     versions."0.0.149" = {
-    #       sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
-    #       npmDepsHash = "sha256-oeMCyaabCVIWMoDAvijTI44ab4wBgZ41GfISH/fXamM=";
-    #     };
-    #     mkPkg = { version ? (l.latest versions), ... }:
-    #       let
-    #         vData = versions.${version} or (throw "Unsupported version: ${version}");
-    #       in
-    #       pkgs.buildNpmPackage {
-    #         pname = "freebuff-launcher";
-    #         inherit version;
+    #
+    # The npm tarball ships no package-lock.json, and we don't want to commit one
+    # lockfile per version, so the dependency closure is produced at build time by
+    # a fixed-output derivation (`npmDeps`) that runs `npm install` itself (FODs
+    # are allowed network access). Its output — the complete `node_modules` tree
+    # plus the generated package-lock.json — is pinned by `npmDepsHash`, so no
+    # lockfile ever needs to live in this repo. To bump a version:
+    #   1. update `sha256` (tarball hash)
+    #   2. set `npmDepsHash = l.fakeHash`, build, and paste the reported `got:` hash
+    ownPkgs.freebuff-launcher =
+      let
+        versions."0.0.149" = {
+          sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
+          # FOD hash of `npm install` output (node_modules + package-lock.json)
+          npmDepsHash = "sha256-GRhOZabknJS43QDhkYjilbEP+dKZkAQA4r4YsjFVsB8=";
+        };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let
+            vData = versions.${version} or (throw "Unsupported version: ${version}");
+            src = pkgs.fetchurl {
+              url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
+              sha256 = vData.sha256;
+            };
+            # Resolves and downloads dependencies at build time (fixed-output
+            # derivations have network access); the output is the installable
+            # node_modules tree. `npmDepsHash` pins it for reproducibility.
+            npmDeps = pkgs.stdenv.mkDerivation {
+              pname = "freebuff-launcher-npm-deps";
+              inherit version src;
+              nativeBuildInputs = [ pkgs.nodejs pkgs.cacert ];
+              buildPhase = ''
+                runHook preBuild
+                export HOME="$TMPDIR"
+                # Node inside nix builds has no usable CA roots; point it at the
+                # cacert bundle so `npm install` can talk to the registry.
+                export NODE_EXTRA_CA_CERTS="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                npm install --ignore-scripts --no-audit --no-fund --cache "$TMPDIR/npm-cache"
+                runHook postBuild
+              '';
+              installPhase = ''
+                runHook preInstall
+                mkdir -p $out
+                cp -r node_modules $out/node_modules
+                cp package-lock.json $out/package-lock.json
+                runHook postInstall
+              '';
+              outputHash = vData.npmDepsHash;
+              outputHashAlgo = "sha256";
+              outputHashMode = "recursive";
+            };
+          in
+          pkgs.stdenv.mkDerivation {
+            pname = "freebuff-launcher";
+            inherit version src;
+            nativeBuildInputs = [ pkgs.nodejs ];
+            dontStrip = true;
 
-    #         src = pkgs.fetchurl {
-    #           url = "https://registry.npmjs.org/freebuff/-/freebuff-${version}.tgz";
-    #           sha256 = vData.sha256;
-    #         };
+            buildPhase = ''
+              runHook preBuild
+              cp -r ${npmDeps}/node_modules ./node_modules
+              runHook postBuild
+            '';
 
-    #         postPatch = ''
-    #           cp ${/tmp/freebuff-npm-unpack/package/package-lock.json} package-lock.json
-    #         '';
-    #         npmDepsHash = vData.npmDepsHash;
-    #         dontNpmBuild = true;
-    #         npmPackFlags = [ "--ignore-scripts" ];
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/lib/node_modules/freebuff $out/bin
+              cp -r ./* $out/lib/node_modules/freebuff/
+              # Exec-style wrapper: `index.js` only boots when it is the main
+              # module (require.main === module), so a `require()`-based wrapper
+              # would silently do nothing. exec'ing node on the script directly
+              # also passes argv through unchanged.
+              cat > $out/bin/freebuff <<EOF
+              #!${pkgs.stdenv.shell}
+              # escaped dollar-at stays literal so runtime argv passes through
+              exec "${pkgs.nodejs}/bin/node" "$out/lib/node_modules/freebuff/index.js" "\$@"
+              EOF
+              chmod +x $out/bin/freebuff
+              ln -s freebuff $out/bin/freebuff-launcher
+              runHook postInstall
+            '';
 
-    #         postInstall = ''
-    #           ln -s $out/bin/freebuff $out/bin/freebuff-launcher
-    #         '';
-
-    #         passthru = { inherit versions mkPkg src; };
-    #         meta = {
-    #           description = "Official auto-updating Node.js launcher for Freebuff CLI";
-    #           homepage = "https://codebuff.com";
-    #           downloadPage = "https://www.npmjs.com/package/freebuff";
-    #           license = pkgs.lib.licenses.mit;
-    #           mainProgram = "freebuff-launcher";
-    #         };
-    #       };
-    #   in
-    #   mkPkg { };
+            passthru = { inherit versions mkPkg src; };
+            meta = {
+              description = "Official auto-updating Node.js launcher for Freebuff CLI";
+              homepage = "https://codebuff.com";
+              downloadPage = "https://www.npmjs.com/package/freebuff";
+              license = pkgs.lib.licenses.mit;
+              mainProgram = "freebuff-launcher";
+            };
+          };
+      in
+      mkPkg { };
 
     # DeepSeek Harness (dsh) — open-source agent harness by DeepSeek AI.
     # Everything-is-a-plugin architecture powered by Cordis.
