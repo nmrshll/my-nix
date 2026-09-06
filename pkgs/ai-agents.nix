@@ -579,22 +579,11 @@ with builtins; {
     # Unlike `own.freebuff` (which pins a fixed precompiled binary per system),
     # the launcher downloads and updates the runtime compiled CLI binary dynamically
     # into `~/.config/manicode/freebuff` on execution.
-    #
-    # The npm tarball ships no package-lock.json, and we don't want to commit one
-    # lockfile per version, so the dependency closure is produced at build time by
-    # a fixed-output derivation (`npmDeps`) that runs `npm install` itself (FODs
-    # are allowed network access). Its output — the complete `node_modules` tree
-    # plus the generated package-lock.json — is pinned by `npmDepsHash`, so no
-    # lockfile ever needs to live in this repo. To bump a version:
-    #   1. update `sha256` (tarball hash)
-    #   2. set `npmDepsHash = l.fakeHash`, build, and paste the reported `got:` hash
     ownPkgs.freebuff-launcher =
       let
-        versions."0.0.149" = {
-          sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c";
-          # FOD hash of `npm install` output (node_modules + package-lock.json)
-          npmDepsHash = "sha256-GRhOZabknJS43QDhkYjilbEP+dKZkAQA4r4YsjFVsB8=";
-        };
+        versions."0.0.149" = { sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c"; npmDepsHash = "sha256-GRhOZabknJS43QDhkYjilbEP+dKZkAQA4r4YsjFVsB8="; };
+        versions."0.0.171" = { sha256 = "1kjh9949ws423wlm1xbvw52c2rgmrbgxlgnrby1zcnxnsmjg5b57"; npmDepsHash = "sha256-FZoY9Wji+4vY0Az80lbicEdVnSoOF+t8TR1uNVqV2A4="; };
+
         mkPkg = { version ? (l.latest versions), ... }:
           let
             vData = versions.${version} or (throw "Unsupported version: ${version}");
