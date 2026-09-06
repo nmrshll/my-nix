@@ -300,24 +300,28 @@
     #     meta = { source = "https://github.com/joshkotrous/tome"; description = "AI-native database client that translates natural language into perfect queries"; homepage = "https://tome.lang/"; };
     #   };
 
-    # ownPkgs.kdeConnect =
-    #   let
-    #     versions."5415".sha256 = "1q3dsgnr6v1dwvffllfin19h7qq516da7iiqyxc0fkf71f1jvy70";
-    #     mkPkg = { version ? "5415", ... }:
-    #       let
-    #         l = builtins // (pkgs.callPackage ../utils/utils.darwin.nix { });
-    #       in
-    #       pkgs.lib.darwin.installDmg {
-    #         inherit version;
-    #         sha256 = versions.${version}.sha256;
-    #         url = pkgs.lib.forSystem {
-    #           aarch64-darwin = "https://origin.cdn.kde.org/ci-builds/network/kdeconnect-kde/master/macos-arm64/kdeconnect-kde-master-${version}-macos-clang-arm64.dmg";
-    #         };
-    #         appname = "KDEConnect";
-    #         meta = { source = "https://invent.kde.org/explore/groups"; description = "Enabling communication between all your devices"; homepage = "https://kdeconnect.kde.org/"; };
-    #       };
-    #   in
-    #   mkPkg { };
+    ownPkgs.kdeConnect =
+      let
+        versions."26.04.2".sha256 = "066pa91fynk4nml262i4hcmilxblbk85kyfd9fdgymgb2xj45gp2"; # TODO: fill in actual hash
+        # versions."5415".sha256 = "1q3dsgnr6v1dwvffllfin19h7qq516da7iiqyxc0fkf71f1jvy70";
+
+        mkPkg = { version ? (l.latest versions), ... }:
+          if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
+          else
+            let
+              url = pkgs.lib.forSystem {
+                aarch64-darwin = "https://download.kde.org/stable/release-service/${version}/macos/kdeconnect-kde-macos-clang-arm64.dmg";
+              };
+            in
+            pkgs.lib.darwin.installDmg {
+              inherit version url;
+              sha256 = versions.${version}.sha256;
+              appname = "KDE Connect";
+              meta = { source = "https://invent.kde.org/explore/groups"; description = "Enabling communication between all your devices"; homepage = "https://kdeconnect.kde.org/"; };
+              passthru = { inherit versions mkPkg; };
+            };
+      in
+      mkPkg { };
 
     # ownPkgs.lulu =
     #   let
