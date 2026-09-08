@@ -77,7 +77,11 @@ with builtins; {
           npmDepsHash = "sha256-R0u93MLUUWC8xFgq4S0Aj/7wg4pygTKwxP/eWkWMgCw=";
           npmDistHash = "sha256-fcGsAxOdv1ZSwt24eHJu97lyRATKBw8rYeFvGTRhxYs=";
         };
-
+        versions."3.8.50" = {
+          sha256 = "sha256-Cjtt2jv/65tkz23QdDkj53iX3X54U4PgNXJ0OYD/eLI=";
+          npmDepsHash = "sha256-nFa72z6Xwbbbgb0ub0b5XeeYkiSZalpFhQL5qn7PJV4=";
+          npmDistHash = "";
+        };
         mkPkg = { version ? (l.latest versions), ... }:
           let
             vInfo = versions.${version};
