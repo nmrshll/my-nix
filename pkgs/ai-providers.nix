@@ -77,30 +77,19 @@ with builtins; {
           npmDepsHash = "sha256-R0u93MLUUWC8xFgq4S0Aj/7wg4pygTKwxP/eWkWMgCw=";
           npmDistHash = "sha256-fcGsAxOdv1ZSwt24eHJu97lyRATKBw8rYeFvGTRhxYs=";
         };
-        versions."3.8.50" = {
-          sha256 = "sha256-Cjtt2jv/65tkz23QdDkj53iX3X54U4PgNXJ0OYD/eLI=";
-          npmDepsHash = "sha256-nFa72z6Xwbbbgb0ub0b5XeeYkiSZalpFhQL5qn7PJV4=";
-          rev = "release/v3.8.50";
-        };
+
         mkPkg = { version ? (l.latest versions), ... }:
           let
             vInfo = versions.${version};
-            hasDistTarball = vInfo ? npmDistHash;
-            npmTarball = if hasDistTarball then pkgs.fetchurl {
+            npmTarball = pkgs.fetchurl {
               url = "https://registry.npmjs.org/omniroute/-/omniroute-${version}.tgz";
               hash = vInfo.npmDistHash;
-            } else null;
+            };
           in
           pkgs.buildNpmPackage rec {
             pname = "omniroute";
             inherit version;
             npmDepsHash = vInfo.npmDepsHash;
-            # Dist-tarball versions (3.8.48/3.8.49) use the default fetcher v1
-            # (their npmDepsHash was computed with it); source builds without a
-            # dist tarball (3.8.50) need v2 for packument caching. Passing null
-            # breaks nixpkgs 26.05's buildNpmPackage, which sets
-            # NIX_NPM_FETCHER_VERSION unconditionally.
-            npmDepsFetcherVersion = if hasDistTarball then 1 else 2;
 
             # Runtime: Node 24 (NODE_MODULE_VERSION 137). omniroute's engines
             # allow '>=22 <23 || >=24 <27'; build and run on nodejs_24 so
@@ -112,7 +101,7 @@ with builtins; {
             src = pkgs.fetchFromGitHub {
               owner = "diegosouzapw";
               repo = "OmniRoute";
-              rev = vInfo.rev or "v${version}";
+              rev = "v${version}";
               sha256 = vInfo.sha256;
             };
 
@@ -130,16 +119,7 @@ with builtins; {
 
             npmFlags = [ "--ignore-scripts" ];
 
-            # When a dist tarball is available (npmDistHash present), skip
-            # the heavy Next.js build and inject the prebuilt dist/ from the
-            # tarball in installPhase.  When no tarball exists yet (new version
-            # not published to npm), build from source with Google Fonts
-            # download disabled (they fail in the Nix sandbox).
-            dontNpmBuild = hasDistTarball;
-
-            preBuild = pkgs.lib.optionalString (!hasDistTarball) ''
-              export NEXT_FONT_GOOGLE_DOWNLOADS_DISABLED=1
-            '';
+            dontNpmBuild = true;
 
             installPhase = ''
               runHook preInstall
@@ -151,14 +131,9 @@ with builtins; {
               (cd node_modules/better-sqlite3 && node ../.bin/node-gyp rebuild 2>&1)
               (cd node_modules/wreq-js && node ../.bin/node-gyp rebuild 2>&1) || true
 
-              ${if hasDistTarball then ''
               # Inject prebuilt dist/ from npm tarball — this avoids running
               # the Next.js build (next/font/google fetches fail in sandbox)
               tar xzf ${npmTarball} --strip=1 -C . package/dist/
-              '' else ''
-              # Source build: next build produced .build/next/standalone
-              cp -r .build/next/standalone dist
-              ''}
 
               # Replace stub modules in dist/node_modules/ with full copies
               # from root node_modules/. The Next.js standalone bundles only
