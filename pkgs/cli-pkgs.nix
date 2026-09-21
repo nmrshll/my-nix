@@ -1,7 +1,7 @@
 with builtins; {
   config.perSystem = { pkgs, l, system, ... }: {
 
-    ownPkgs.atlassian-cli =
+    ownPkgs.atlassian-cli = {}:
       let
         versions."1.2.5-stable".sha256 = "sha256:1xij39cv16af7cs5pwyg3fb56kdmf2kvvrg0hizs4m0cly3pv00a";
         mkPkg = { version ? "1.2.5-stable", ... }:
@@ -29,7 +29,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.leveldb-viewer =
+    ownPkgs.leveldb-viewer = {}:
       let
         versions."master".sha256 = "DLP4gVoC9Nb/0iIjkNG1mwCIAfxH1KPbrDm/ueE3fFk=";
         mkPkg = { version ? "master", ... }:
@@ -55,7 +55,7 @@ with builtins; {
 
     # TODO package https://github.com/ErfanY/krust
 
-    ownPkgs.beads-rust =
+    ownPkgs.beads-rust = {}:
       let
         versions."0.1.34" = {
           sha256 = "sha256-h3YomeRFeekp6PZwDSqibaQudyiZB8ewNEACjfHk96A=";
@@ -133,7 +133,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.dumap =
+    ownPkgs.dumap = {}:
       let
         versions."1.1.0" = { sha256 = "nVG9A+QBTRo+M4ogwHOARRvihsWka/I4CPzY5M9yONc="; };
 
@@ -157,7 +157,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.tilth =
+    ownPkgs.tilth = {}:
       let
         versions."0.6.3".sha256 = "xP9zsOmzAJKbQBeRFdbWqt3CGjj7rJpbCIvIo+f6efc=";
         mkPkg = { version ? (l.latest versions), ... }:
@@ -186,7 +186,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.rmrfrs =
+    ownPkgs.rmrfrs = {}:
       let
         versions."0.8.8" = { sha256 = "1QF1l6V6YmKDPqlbXpMeWg3Pt5AonBHelD63mJkSWNM="; cargoHash = "sha256-mPQN/JN6b9/1xo1JSj0LpVjb7rGTwrfU0PY7pbENdg4="; };
         mkPkg = { version ? (l.latest versions), ... }:
@@ -221,7 +221,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.oxmgr =
+    ownPkgs.oxmgr = {}:
       let
         versions."0.4.0".sha256 = "0bk9i5l72r83ilg7akdnf2kcfw72xk7yfy7ssz3inagnwyhsr9pv";
 

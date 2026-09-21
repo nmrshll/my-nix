@@ -1,7 +1,7 @@
 with builtins; {
   config.perSystem = { pkgs, lib, config, ... }: {
 
-    ownPkgs.xcode-xip =
+    ownPkgs.xcode-xip = {}:
       let
         # downloaded from https://developer.apple.com/download/all/
         versions."26_2_Apple_silicon".sha256 = "0lmmyq12c3pkhs6cwf9v5pna1rvn7h8idxq0i78yh7v47ia1vwvd";
@@ -23,13 +23,13 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.install-xcode =
+    ownPkgs.install-xcode = {}:
       let
         versions."26_2_Apple_silicon" = { };
         versions."26_1_Apple_silicon" = { };
         mkPkg = { version ? "26_1_Apple_silicon", ... }:
           let
-            xip = config.ownPkgs.xcode-xip.passthru.mkPkg { inherit version; };
+            xip = (config.ownPkgs.xcode-xip { }).passthru.mkPkg { inherit version; };
             xcode_app.versions = {
               "26_2_Apple_silicon".sha256 = "YxMVppJwRzTA6xWOILxVjLdl0bNmtZSifG/KQx6inRE=";
               "26_1_Apple_silicon".sha256 = "xFMknk3RxxJi/5IOb2mmw7vyC1xOaY5ZwCZ09AARtJU=";
@@ -70,13 +70,13 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.install-xcode-global =
+    ownPkgs.install-xcode-global = {}:
       let
         versions."26_2_Apple_silicon" = { };
         versions."26_1_Apple_silicon" = { };
         mkPkg = { version ? "26_1_Apple_silicon", ... }:
           let
-            install-xcode-pkg = config.ownPkgs.install-xcode.passthru.mkPkg { inherit version; };
+            install-xcode-pkg = (config.ownPkgs.install-xcode { }).passthru.mkPkg { inherit version; };
             store_path = install-xcode-pkg.xcode_app.expected_path;
             target_path = "/Applications/Xcode.app";
             DEV_DIR = "${target_path}/Contents/Developer";

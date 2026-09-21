@@ -3,7 +3,7 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
-    ownPkgs.cactus =
+    ownPkgs.cactus = {}:
       let
         versions."2.0.1".sha256 = "sha256-rZvgjWa5Qqss9qxVi3LR8pQykPxh9MylllFFiYpSd5o=";
         mkPkg = { version ? (l.latest versions), ... }:
@@ -65,7 +65,7 @@ with builtins; {
       mkPkg { };
 
 
-    ownPkgs.omniroute =
+    ownPkgs.omniroute = {}:
       let
         versions."3.8.48" = {
           sha256 = "sha256-lqw0M0mHqsMWWvz7X+3sO+FbaVmJ9bL9FBgB5HxsUBI=";
@@ -198,7 +198,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.omlx =
+    ownPkgs.omlx = {}:
       let
         versions."0.2.24-macos15-sequoia" = { sha256 = "07g4wqydlczcqhx7ahvdrsp1ygxnm8dqmqlifvq2xx071p3d11iz"; number = "0.2.24"; };
         # versions."0.3.0rc1-macos15-sequoia" = { sha256 = "1q1lndzayf7j7h658gigg3107hh8qbkvwwiibqazywgxjjggfrc6"; number = "0.3.0rc1"; };
@@ -237,7 +237,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.handy =
+    ownPkgs.handy = {}:
       let
         versions."0.9.4".aarch64-darwin.sha256 = "sha256:0xi4wxszpb6scpcadns2fxhhxr405i9v2pi5nsnc6kg4zm6fry5v";
         versions."0.8.2".aarch64-darwin.sha256 = "1a2156h5sfnr5mydps7b6r701nqzkpmhb8m1wpizdppchy563vnp";

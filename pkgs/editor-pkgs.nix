@@ -1,7 +1,7 @@
 {
   config.perSystem = { pkgs, ... }: {
 
-    ownPkgs.openspec =
+    ownPkgs.openspec = {}:
       let
         versions."0.16.0".sha256 = "eBZvgjjEzhoO1Gt4B3lsgOvJ98uGq7gaqdXQ40i0SqY=";
         versions."0.15.0".sha256 = "Wb0m2ZRmOXNj6DOK9cyGYzFLNTQjLO+czDxzIHfADnY=";
@@ -83,7 +83,7 @@
     #       };
     #     };
 
-    ownPkgs.warp =
+    ownPkgs.warp = {}:
       let
         versions."0.2025.07.02.08.36.stable_02".sha256 = "sha256:06ys4d5p9fw0v0033ckxlnmlxpmkrydzm7c53bipvah1i9i5nxk1";
         versions."0.2025.06.25.08.12.stable_01".sha256 = "sha256:09n9frfds1a71zkbhydiv87ckb4frlai2c9qmp0zrx313x8i5y7g";
@@ -107,7 +107,7 @@
       in
       mkPkg { };
 
-    ownPkgs.windsurf =
+    ownPkgs.windsurf = {}:
       let
         versions."1.2.4".sha256 = "sha256:1h05cvvk7qjsnws2y48aajabzgafhi0nmmk840f2x7cmjvqlfq1j";
         mkPkg = { version ? "1.2.4", ... }:
@@ -130,7 +130,7 @@
       in
       mkPkg { };
 
-    ownPkgs.aide =
+    ownPkgs.aide = {}:
       let
         versions."1.96.4.25031".sha256 = "sha256:0xkllb9a7wp5wyadppsblskdwa87qrab8f6ymkfkbypd0fkl6x4q";
         mkPkg = { version ? "1.96.4.25031", ... }:

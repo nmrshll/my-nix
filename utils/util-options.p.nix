@@ -62,24 +62,57 @@ with builtins; let
   # flakeModules.ownPkgs2 below. To pin/build a specific version of a package,
   # use the passthru attrs `versions` and `mkPkg` (and `src` when the package
   # is built from a single download).
+  #
+  # WHY lazy: each `ownPkgs.X` value is a nullary function (`{}: mkPkg { }`),
+  # never a package. The module system WHNF-forces every definition of a merged
+  # option (to check `isAttrs d.value`), so storing packages directly would
+  # evaluate ALL of them as soon as ANY downstream flake reads ANY `ownPkgs`
+  # entry (e.g. `pkgs.own.oxmgr` in a devshell pulls in `hermes-agent`'s
+  # `builtins.getFlake`, which fails on a cold store). Functions are already in
+  # WHNF, so merging/inspecting the set is free; the body only runs when some
+  # consumer actually demands that package. Downstream flakes therefore never
+  # need to null out entries they don't use.
+  # Per-platform `null` entries are kept as null under `pkgs.own.<name>`; they
+  # are dropped from `expose.packages.own`. Plain (non-function) values still
+  # work via `unwrap`.
 
+  flakeModules.ownPkgsBase = { ... }: {
+    config.perSystem = perSys@{ l, ... }:
+      let unwrap = v: if v == null then null else if builtins.isFunction v then v { } else v;
+      in {
+        options.ownPkgs = l.mkOption { type = l.types.attrsOf l.types.unspecified; default = { }; };
+        config.pkgs.overlays = [
+          (final: prev: { own = (prev.own or { }) // builtins.mapAttrs (name: unwrap) perSys.config.ownPkgs; })
+        ];
+        # NOTE: the publish-all path; intentionally eager (forces every entry).
+        config.expose.packages.own = builtins.mapAttrs (name: unwrap) (l.filterAttrs (n: v: v != null) perSys.config.ownPkgs);
+      };
+  };
+
+
+
+  flakeModules.ownPkgs_aiProviders = { ... }: { imports = [ ../pkgs/ai-providers.nix ]; };
+  flakeModules.ownPkgs_aiAgents = { ... }: { imports = [ ../pkgs/ai-agents.nix ]; };
+  flakeModules.ownPkgs_cli = { ... }: { imports = [ ../pkgs/cli-pkgs.nix ]; };
+  flakeModules.ownPkgs_editors = { ... }: { imports = [ ../pkgs/editor-pkgs.nix ]; };
+  flakeModules.ownPkgs_gui = { ... }: { imports = [ ../pkgs/gui-pkgs.nix ]; };
+  flakeModules.ownPkgs_libs = { ... }: { imports = [ ../pkgs/libs-pkgs.nix ]; };
+  flakeModules.ownPkgs_services = { ... }: { imports = [ ../pkgs/service-pkgs.nix ]; };
+
+  # Backwards-compat bundle: everything, as before. Downstream flakes that only
+  # need a subset can instead import `ownPkgsBase` plus just the
+  # `ownPkgs_<group>` modules they use (or nothing at all).
   flakeModules.ownPkgs2 = { ... }: {
     imports = [
-      ../pkgs/ai-providers.nix
-      ../pkgs/ai-agents.nix
-      ../pkgs/cli-pkgs.nix
-      ../pkgs/editor-pkgs.nix
-      ../pkgs/gui-pkgs.nix
-      ../pkgs/libs-pkgs.nix
-      ../pkgs/service-pkgs.nix
+      flakeModules.ownPkgsBase
+      flakeModules.ownPkgs_aiProviders
+      flakeModules.ownPkgs_aiAgents
+      flakeModules.ownPkgs_cli
+      flakeModules.ownPkgs_editors
+      flakeModules.ownPkgs_gui
+      flakeModules.ownPkgs_libs
+      flakeModules.ownPkgs_services
     ];
-    config.perSystem = perSys@{ l, ... }: {
-      options.ownPkgs = l.mkOption { type = l.types.attrsOf l.types.unspecified; default = { }; };
-      config.pkgs.overlays = [
-        (final: prev: { own = (prev.own or { }) // (l.filterAttrs (n: v: v != null) perSys.config.ownPkgs); })
-      ];
-      config.expose.packages.own = l.filterAttrs (n: v: v != null) perSys.config.ownPkgs;
-    };
   };
 
   # let any module extend the flakeModule/perSystem lib arg
@@ -147,6 +180,14 @@ with builtins; let
 
 in
 {
-  flake.flakeModules = flakeModules // { utils = flakeModules; essentials = flakeModules; };
-  imports = (attrValues flakeModules);
+  # NOTE: `ownPkgs2` is intentionally NOT part of the `utils`/`essentials`
+  # aliases below: it re-imports `ownPkgsBase` + the per-group modules, and
+  # anonymous function modules are not deduped, so including both would declare
+  # `options.ownPkgs` twice. `ownPkgs2` stays importable standalone for
+  # back-compat (`imports.my-nix.flakeModules.ownPkgs2` pulls in everything).
+  flake.flakeModules = flakeModules // {
+    utils = removeAttrs flakeModules [ "ownPkgs2" ];
+    essentials = removeAttrs flakeModules [ "ownPkgs2" ];
+  };
+  imports = (attrValues (removeAttrs flakeModules [ "ownPkgsBase" ]));
 }

@@ -1,7 +1,7 @@
 {
   config.perSystem = { pkgs, l, ... }: {
 
-    ownPkgs.antigravity =
+    ownPkgs.antigravity = {}:
       let
         versions."1.16.5-6703236727046144".sha256 = "sha256:1nc2fsd4hmlvh1b5vh0ndffy6q7xng9xdb931c0dzkpz190alr0z";
         mkPkg = { version ? "1.16.5-6703236727046144", ... }:
@@ -24,7 +24,7 @@
       in
       mkPkg { };
 
-    ownPkgs.anytype =
+    ownPkgs.anytype = {}:
       let
         versions."0.54.37-alpha".sha256 = "1ggjj7fc2qivlx0ywsxasnp8qf3ciqfk6bp3iicirl2ski3jqp95";
         versions."0.53.1".sha256 = "0v49qj232mkpx54z99nbmiafkvagkhk2xy8h8yyz95jizklhbh6g";
@@ -50,7 +50,7 @@
       in
       mkPkg { };
 
-    ownPkgs.beeper =
+    ownPkgs.beeper = {}:
       let
         versions."4.3.0".sha256 = "18xxz7wk862pikm2v4wzfx9mdhfkhylh0n5pqdyxzmrkr23hjn1g";
         versions."4.2.532".sha256 = "05indiqrfwsj6fx85l02ky57hf7kjkkkaic67i8wv4l9n3j4cvnj";
@@ -93,7 +93,7 @@
       in
       mkPkg { };
 
-    ownPkgs.opencode-desktop =
+    ownPkgs.opencode-desktop = {}:
       let
         versions."1.2.27".sha256 = "1j6hp4pqm2rdz3s8j08ihylkhdgnb5kanxlkyqpshkf1d6dr0bha";
         mkPkg = { version ? "1.2.27", ... }:
@@ -134,7 +134,7 @@
       mkPkg { };
 
 
-    ownPkgs.open-codesign =
+    ownPkgs.open-codesign = {}:
       let
         versions."0.2.1".sha256 = "sha256-norDYqef2+kpkT09X7KWsLgD/nstaA0dD3G348Cq7XA=";
         mkPkg = { version ? (l.latest versions), ... }:
@@ -158,7 +158,7 @@
       in
       mkPkg { };
 
-    ownPkgs.augment-intent =
+    ownPkgs.augment-intent = {}:
       let
         versions."latest".sha256 = "03wkfzgf2k3nfikjrjsax8zf4j546w45cbnig66jhwsjaxiijlbj";
         mkPkg = { version ? "latest", ... }:
@@ -200,7 +200,7 @@
     #     meta = { description = "All your services in one place built by the community"; homepage = "https://ferdium.org"; };
     #   };
 
-    ownPkgs.transmission =
+    ownPkgs.transmission = {}:
       let
         versions."4.0.6".sha256 = "sha256:06kw4zkn6a3hd8s66hk77v4k0b7z7mn5h0y69hwgbhp0abqmg676";
         mkPkg = { version ? "4.0.6", ... }:
@@ -221,7 +221,7 @@
       in
       mkPkg { };
 
-    ownPkgs.finicky =
+    ownPkgs.finicky = {}:
       let
         versions."4.1.4".sha256 = "sha256:13ayk8jslvxdqaba1ay2kr3hw0g2hr4lpadll9cv4zglz94xj81b";
         mkPkg = { version ? "4.1.4", ... }:
@@ -244,7 +244,7 @@
       in
       mkPkg { };
 
-    ownPkgs.comfy-ui =
+    ownPkgs.comfy-ui = {}:
       let
         versions."241012ess7yxs0e".sha256 = "0fbiwl0kir80gyiqqm5xrvsdwqj4fjws0k2slcrq2g4xkn7cwv7g";
         mkPkg = { version ? "241012ess7yxs0e", ... }:
@@ -300,7 +300,7 @@
     #     meta = { source = "https://github.com/joshkotrous/tome"; description = "AI-native database client that translates natural language into perfect queries"; homepage = "https://tome.lang/"; };
     #   };
 
-    ownPkgs.kdeConnect =
+    ownPkgs.kdeConnect = {}:
       let
         versions."26.04.2".sha256 = "066pa91fynk4nml262i4hcmilxblbk85kyfd9fdgymgb2xj45gp2"; # TODO: fill in actual hash
         # versions."5415".sha256 = "1q3dsgnr6v1dwvffllfin19h7qq516da7iiqyxc0fkf71f1jvy70";
@@ -360,7 +360,7 @@
     #   in
     #   mkPkg { };
 
-    ownPkgs.lulu-installer =
+    ownPkgs.lulu-installer = {}:
       let
         versions."4.2.0".sha256 = "1yl75hw5psblcb6biwxdp2mjp3n4dclyaj961mh3f6v8bya6ylcj";
         mkPkg = { version ? "4.2.0", ... }:
@@ -409,7 +409,7 @@
       in
       mkPkg { };
 
-    ownPkgs.launchd-ui =
+    ownPkgs.launchd-ui = {}:
       let
         versions."1.0.9".sha256 = "11a03f7a9f1e17685943ad243f08dc86337df1c5a19dc75062804e45d0c41272";
         mkPkg = { version ? "1.0.9", ... }:
@@ -433,7 +433,7 @@
       in
       mkPkg { };
 
-    ownPkgs.frame =
+    ownPkgs.frame = {}:
       let
         versions."0.30.0".sha256 = "sha256:1b66a4lxbzdyyyzslqkxhsdfm0dzvpkkcgnqqipwiqghff1901zp";
         mkPkg = { version ? "0.30.0", ... }:

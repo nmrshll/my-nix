@@ -1,7 +1,7 @@
 with builtins; {
   config.perSystem = { pkgs, system, ... }: {
 
-    ownPkgs.orbstack =
+    ownPkgs.orbstack = {}:
       let
         versions."1.11.3_19358".sha256 = "1p3qazha4q1ihqa4154jynp11kw9vqw4cyvpkdad4c9dcy9a6fzz";
         versions."2.0.3_19876".sha256 = "03pjk4zvvpnxgnk3bnbaxri211ji4khgdl9f9pkiz0c46p9mrynw";

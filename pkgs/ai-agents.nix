@@ -1,7 +1,7 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
-    ownPkgs.pi-coding-agent =
+    ownPkgs.pi-coding-agent = {}:
       let
         versions."0.70.2" = { sha256 = "qqmJloTp3mWuZBGgpwoyoFyXx6QD8xhJEwCZb7xFabM="; npmDepsHash = "sha256-ImDvTC0Nm+IGYJuqjwUUfnOtA65uJvjlpP4h2Xt/2vE="; };
         versions."0.64.0" = { sha256 = "knCfmoTjq5RADkGRcX7AAxTBhW+2GL4pDtgvMH8pMoY="; npmDepsHash = "sha256-dzBmtAhm0X4TsKW9nwKVyhvYlMLphzNtKkDvubWQFPk="; };
@@ -90,7 +90,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.pi-acp =
+    ownPkgs.pi-acp = {}:
       let
         versions."0.0.24" = { sha256 = "83wNlyOYLkCa6BH/Edal54ovXbAmP745qzSjD+9ZOIE="; npmDepsHash = "sha256-GNn4XTeFDrmWQeuLSjRlz4nwP5T76HCwBLnIDFPcJkg="; };
         mkPkg = { version ? (l.latest versions), ... }:
@@ -142,7 +142,7 @@ with builtins; {
     #   in
     #   mkPkg { };
 
-    ownPkgs.poolside-cli =
+    ownPkgs.poolside-cli = {}:
       let
         versions."1.0.11".sha256 = "yaOiCpCU8IxXYEoQvj2KVmbCruPVITSqJwigKe+GDfM=";
         versions."1.0.0".sha256 = "/nYYNu9hZ6SvoV8lCkfNo0YtqjPtJgrIutEndWYVgIg=";
@@ -319,7 +319,7 @@ with builtins; {
     #   in
     #   mkPkg { };
 
-    ownPkgs.hermes-agent =
+    ownPkgs.hermes-agent = {}:
       let
         versions."v2026.5.16" = { sha256 = "sha256-d9qhrTy45Q5UsmjapqMHOVi9e+gR9zE8Nq9Z0wObLmc="; };
         mkPkg = { version ? (l.latest versions), ... }:
@@ -341,7 +341,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.oh-my-pi =
+    ownPkgs.oh-my-pi = {}:
       let
         versions."v16.2.2".sha256 = "sha256:1qjzp0qz0q1pyvqw6glya8phllamw9dq58b2gj1y8wrs5a04bsag";
         versions."v15.7.3".sha256 = "052vncf0iy55b5hyfa7axf6xqx6aqafv82xab9m4hh2p6bjrsg12";
@@ -428,7 +428,7 @@ with builtins; {
       in
       mkPkg { };
 
-    ownPkgs.mimo-code =
+    ownPkgs.mimo-code = {}:
       let
         versions."0.1.9".sha256 = "sha256-Vhx5oVeji5419jbNdVh99ryZWKOKrL1lhzMchfiLyr0=";
         versions."0.1.3".sha256 = "sha256-dmoXFbZo0YAcVOgMA0OhYxLSe1p/sHSeXIdjxzafIN0=";
@@ -485,7 +485,7 @@ with builtins; {
     # Instead of shipping the launcher (which breaks Nix's purity), we fetch
     # the actual compiled binary directly, pinned per platform.
     #   https://github.com/CodebuffAI/codebuff-community/releases/download/freebuff-v${version}/
-    ownPkgs.freebuff =
+    ownPkgs.freebuff = {}:
       let
         versions."0.0.149" = {
           darwin-arm64 = "1skwc6g1lg0paswv2p2mjwh2zx5vi6bk4yprsi4i8gsp778nla19";
@@ -579,7 +579,7 @@ with builtins; {
     # Unlike `own.freebuff` (which pins a fixed precompiled binary per system),
     # the launcher downloads and updates the runtime compiled CLI binary dynamically
     # into `~/.config/manicode/freebuff` on execution.
-    ownPkgs.freebuff-launcher =
+    ownPkgs.freebuff-launcher = {}:
       let
         versions."0.0.149" = { sha256 = "1chssm1s83h02j1sbq117lx4fw8r25zhcza1iii186jn49riha3c"; npmDepsHash = "sha256-GRhOZabknJS43QDhkYjilbEP+dKZkAQA4r4YsjFVsB8="; };
         versions."0.0.171" = { sha256 = "1kjh9949ws423wlm1xbvw52c2rgmrbgxlgnrby1zcnxnsmjg5b57"; npmDepsHash = "sha256-FZoY9Wji+4vY0Az80lbicEdVnSoOF+t8TR1uNVqV2A4="; };
@@ -664,7 +664,7 @@ with builtins; {
     # DeepSeek Harness (dsh) — open-source agent harness by DeepSeek AI.
     # Everything-is-a-plugin architecture powered by Cordis.
     # https://github.com/deepseek-ai/deepseek-harness
-    ownPkgs.deepseek-harness =
+    ownPkgs.deepseek-harness = {}:
       let
         versions."0.1.0-rc.8" = {
           sha256 = "sha256-FzToX43k6upXkwTxTYXHRK5IdatxibxeZgZBpuDE7S4=";
