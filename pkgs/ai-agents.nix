@@ -756,5 +756,61 @@ with builtins; {
       in
       mkPkg { };
 
+    # opencode v2 — distributed as per-platform npm tarballs
+    # (@opencode/cli-<target>) each containing a prebuilt `bin/opencode`.
+    # https://opencode.ai/v2/docs
+    ownPkgs.opencode-v2 = {}:
+      let
+        versions."2.0.14" = {
+          darwin-arm64 = "1ckhnc9isv6n87r63slydcqa1zlvwg0sd3h55z3mx117fki74c0c";
+          darwin-x64 = "08fznv1afg3bnihm522kl82ypj3bki5ca4kf3lrjwzal91gzdjy0";
+          linux-x64 = "1aakgqrir52wgwvzxz4jcj7nd6x4icd7bbj7bklnkzc0s304r0m3";
+          linux-arm64 = "1vwkyrjxzmmfxsy69qp7555lv7mh7m8mjsf8ijmrydwi87s95yz0";
+        };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let
+            v = versions.${version} or (throw "Unsupported version: ${version}");
+            target = {
+              aarch64-darwin = "darwin-arm64";
+              x86_64-darwin = "darwin-x64";
+              x86_64-linux = "linux-x64";
+              aarch64-linux = "linux-arm64";
+            }.${pkgs.stdenv.hostPlatform.system} or (throw "Unsupported system: ${pkgs.stdenv.hostPlatform.system}");
+            sha256 = v.${target} or (throw "No hash for ${target} in version ${version}");
+            src = pkgs.fetchurl {
+              url = "https://registry.npmjs.org/@opencode/cli-${target}/-/cli-${target}-${version}.tgz";
+              inherit sha256;
+            };
+          in
+          pkgs.stdenvNoCC.mkDerivation {
+            pname = "opencode-v2";
+            inherit version src;
+            sourceRoot = ".";
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              install -Dm755 package/bin/opencode $out/bin/opencode
+              runHook postInstall
+            '';
+            doInstallCheck = true;
+            nativeInstallCheckInputs = [
+              pkgs.writableTmpDirAsHomeHook
+              pkgs.pkgs.versionCheckHook
+            ];
+            versionCheckKeepEnvironment = [ "HOME" ];
+            versionCheckProgram = "${placeholder "out"}/bin/opencode";
+            versionCheckProgramArg = "--version";
+            passthru = { inherit versions mkPkg src; };
+            meta = {
+              description = "OpenCode v2 — open source AI coding agent (terminal TUI)";
+              homepage = "https://opencode.ai/v2/docs";
+              changelog = "https://github.com/sst/opencode/releases";
+              mainProgram = "opencode";
+              platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+            };
+          };
+      in
+      mkPkg { };
+
   };
 }
