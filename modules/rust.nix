@@ -30,7 +30,19 @@ with builtins; let
           env = config.rust.buildEnv;
           # dontUseCmakeConfigure = true;  # for apple metal ?
         };
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+        # crane's dependency-only build replaces every crate it finds under the
+        # source with a dummy stub. That is wrong for `[patch]` path crates that
+        # live in the repo but are linked against by *other* dependencies (the
+        # stub then has none of the real API). These crane escape hatches are
+        # threaded into `buildDepsOnly` only, so a consumer can hand in a
+        # pre-built `dummySrc`, append to the dummy generation with
+        # `extraDummyScript` (e.g. restore the real sources of its patch
+        # crates), or replace the whole vendor dir with `cargoVendorDir`.
+        depsArgs = commonArgs
+          // lib.optionalAttrs (config.rust.dummySrc != null) { inherit (config.rust) dummySrc; }
+          // lib.optionalAttrs (config.rust.extraDummyScript != "") { inherit (config.rust) extraDummyScript; }
+          // lib.optionalAttrs (config.rust.cargoVendorDir != null) { inherit (config.rust) cargoVendorDir; };
+        cargoArtifacts = craneLib.buildDepsOnly depsArgs;
         perCrateArgs = path:
           let
             crateToml = fromTOML (readFile (self.outPath + "/${path}/Cargo.toml"));
@@ -144,6 +156,10 @@ with builtins; let
         options.rust.buildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.nativeBuildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.buildEnv = l.mkOption { type = l.types.attrsOf (lib.types.oneOf [ lib.types.str lib.types.int lib.types.bool ]); default = { }; };
+        # Escape hatches for crane's dependency-only build; see `depsArgs` above.
+        options.rust.dummySrc = l.mkOption { type = l.types.nullOr l.types.package; default = null; };
+        options.rust.extraDummyScript = l.mkOption { type = l.types.str; default = ""; };
+        options.rust.cargoVendorDir = l.mkOption { type = l.types.nullOr l.types.package; default = null; };
         # Internal options
         options.rust.crates = l.mkOption { type = l.types.nestedAttrs l.types.package; default = { }; readOnly = true; };
 
