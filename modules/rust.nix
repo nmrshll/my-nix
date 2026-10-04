@@ -54,6 +54,15 @@ with builtins; let
               if builtins.isAttrs crateToml.package.version && crateToml.package.version ? workspace && crateToml.package.version.workspace == true
               then rootToml.workspace.package.version or "0.1.0" # Fallback if missing in root
               else crateToml.package.version;
+            # Other workspace member dirs (e.g. libs/* shared libs): cargo still
+            # resolves every glob in the root workspace manifest, so each member
+            # base dir must exist in the narrowed source (cargo ≥1.99 hard-errors
+            # on unmatched globs). The crate's own parent dir is already covered
+            # above, so only the *other* member dirs are added here.
+            memberBase = m: if lib.hasSuffix "/*" m then lib.removeSuffix "/*" m else m;
+            extraMemberDirs = lib.unique (filter
+              (d: d != "" && d != dirOf path && pathExists (self.outPath + "/${d}"))
+              (map memberBase (rootToml.workspace.members or [ ])));
           in
           rec {
             inherit cargoArtifacts buildInputs;
@@ -63,11 +72,11 @@ with builtins; let
             cargoExtraArgs = "-p ${pname}";
             src = lib.fileset.toSource {
               root = (/. + builtins.unsafeDiscardStringContext self.outPath);
-              fileset = lib.fileset.unions [
+              fileset = lib.fileset.unions ([
                 (craneLib.fileset.commonCargoSources (relPath "/${path}"))
                 (relPath "/Cargo.toml")
                 (relPath "/Cargo.lock")
-              ];
+              ] ++ map (d: craneLib.fileset.commonCargoSources (relPath "/${d}")) extraMemberDirs);
             };
             doCheck = false; # we disable tests since we'll run them all via cargo-nextest
             env = config.rust.buildEnv;
