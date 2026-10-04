@@ -517,7 +517,7 @@ with builtins; let
 
         packages = ownPkgs;
 
-        myDevShell.env = env;
+        myDevShell.env = lib.mapAttrs (_: lib.mkDefault) env;
         myDevShell.buildInputs = buildInputs ++ [
           ownPkgs.spl-token
           ownPkgs.solana-cli
