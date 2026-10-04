@@ -363,7 +363,7 @@
 
 
         devDeps = [
-          pkgs.own.oxmgr
+          # pkgs.own.oxmgr
           pkgs.pstree
           pkgs.process-compose
         ];
