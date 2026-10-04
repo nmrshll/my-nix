@@ -176,7 +176,10 @@ with builtins; let
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
           myDevShell.buildInputs = buildInputs ++ devInputs ++ (attrValues scripts);
-          myDevShell.env = env;
+          # Default only: a consumer flake setting its own RUST_BACKTRACE
+          # (e.g. `myDevShell.env.RUST_BACKTRACE = 1`) wins, since mkDefault
+          # loses to a plain definition instead of conflicting with it.
+          myDevShell.env.RUST_BACKTRACE = l.mkDefault env.RUST_BACKTRACE;
           # myDevShell.shellHooks.de = ''
           #   comm -13 <(echo "$nativeBuildInputs" | tr ' ' '\n' | sort) <(echo "$PATH" | tr ':' '\n' | sort) | grep "/nix/store"
           # '';
