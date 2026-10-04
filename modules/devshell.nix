@@ -78,7 +78,7 @@ with builtins; let
           myDevShell.scripts.cleanup = lib.concatMapStringsSep "\n" genCleanupCmd (attrValues config.myDevShell.cleanups);
 
           devShells.default = (pkgs.mkShell.override config.myDevShell.overrides {
-            env = mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else v) config.myDevShell.env;
+            env = mapAttrs (_: v: if (isBool v) then (if v then "true" else "false") else toString v) config.myDevShell.env;
             buildInputs = config.myDevShell.buildInputs ++ (attrValues scriptsPkgSet);
             shellHook = concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
           });
