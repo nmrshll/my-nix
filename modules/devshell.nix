@@ -52,8 +52,30 @@ with builtins; let
           };
           overrides = lib.mkOption {
             type = lib.types.lazyAttrsOf (lib.types.anything);
-            default = { stdenv = pkgs.stdenvNoCC; };
+            # Full stdenv when the consumer asked for the nixpkgs toolchain
+            # (compiler + libcxx + SDK from one nixpkgs, coherently);
+            # bare stdenvNoCC otherwise (see `toolchain` below).
+            default =
+              if config.myDevShell.toolchain == "nixpkgs" then { }
+              else { stdenv = pkgs.stdenvNoCC; };
             description = "Overrides for the dev shell environment.";
+          };
+          toolchain = lib.mkOption {
+            type = lib.types.enum [ "none" "nixpkgs" "xcode" ];
+            default = "none";
+            description = ''
+              C toolchain for the dev shell. Nothing by default: consumers
+              that compile C/C++ (directly or via `-sys` crates) must opt in.
+              - "none": no C toolchain. CC/CXX, SDKROOT and nix compile flags
+                are scrubbed so a C build fails fast instead of mixing
+                half-configured toolchains.
+              - "nixpkgs": full nixpkgs stdenv (matching compiler, libcxx
+                and Apple SDK). A specific compiler version can still be set
+                explicitly via `myDevShell.overrides`.
+              - "xcode" (darwin): impure system Xcode (xcrun SDK, /usr/bin
+                clang). Nix compile flags are scrubbed so Xcode is
+                self-consistent. Xcode upgrades may break builds.
+            '';
           };
         };
       };
@@ -74,6 +96,7 @@ with builtins; let
             else "";
           scriptsPkgSet = mapAttrs pkgs.writeShellScriptBin config.myDevShell.scripts;
         in
+        lib.mkMerge [
         {
           myDevShell.scripts.cleanup = lib.concatMapStringsSep "\n" genCleanupCmd (attrValues config.myDevShell.cleanups);
 
@@ -82,7 +105,28 @@ with builtins; let
             buildInputs = config.myDevShell.buildInputs ++ (attrValues scriptsPkgSet);
             shellHook = concatStringsSep "\n" (attrValues config.myDevShell.shellHooks);
           });
-        };
+        }
+        # "none": scrub every C-toolchain variable nix may have leaked in via
+        # buildInputs, so C builds fail fast with "compiler not found"
+        # instead of mixing e.g. nix libcxx headers with an Xcode SDK.
+        (lib.mkIf (config.myDevShell.toolchain == "none") {
+          myDevShell.shellHooks.toolchain = ''
+            unset CC CXX CC_FOR_TARGET CXX_FOR_TARGET
+            unset NIX_CFLAGS_COMPILE NIX_CFLAGS_COMPILE_FOR_TARGET
+            unset SDKROOT DEVELOPER_DIR
+          '';
+        })
+        # "xcode": explicitly impure system toolchain. Scrub nix flags so
+        # Xcode's clang + libc++ + SDK are self-consistent.
+        (lib.mkIf (config.myDevShell.toolchain == "xcode") {
+          myDevShell.shellHooks.toolchain = ''
+            unset NIX_CFLAGS_COMPILE NIX_CFLAGS_COMPILE_FOR_TARGET
+            export DEVELOPER_DIR="$(/usr/bin/xcode-select -p)"
+            export SDKROOT="$(/usr/bin/xcrun --show-sdk-path)"
+            export CC=/usr/bin/clang CXX=/usr/bin/clang++
+          '';
+        })
+      ];
     };
   };
 

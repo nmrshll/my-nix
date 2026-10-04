@@ -185,6 +185,10 @@ with builtins; let
           pkgs.overlays = [ (import part.config.flakeInputsOf.my-nix.rust-overlay) ];
 
           myDevShell.buildInputs = buildInputs ++ devInputs ++ (attrValues scripts);
+          # Importing the rust module is itself the opt-in to a C toolchain:
+          # Rust builds almost always need cc available (build scripts,
+          # linking). mkDefault so an explicit consumer setting still wins.
+          myDevShell.toolchain = l.mkDefault "nixpkgs";
           # Default only: a consumer flake setting its own RUST_BACKTRACE
           # (e.g. `myDevShell.env.RUST_BACKTRACE = 1`) wins, since mkDefault
           # loses to a plain definition instead of conflicting with it.
