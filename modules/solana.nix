@@ -54,8 +54,8 @@ with builtins; let
                     PROTOC = "${pkgs.protobuf}/bin/protoc";
                     LIBUSB_NO_VENDOR = 1;
                     OPENSSL_NO_VENDOR = 1;
-                    CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
-                    LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
+                    CPPFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-isystem ${lib.getInclude stdenv.cc.libcxx}/include/c++/v1";
+                    LDFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-L${lib.getLib stdenv.cc.libcxx}/lib";
                   };
                   passthru = { inherit versions mkPkg; };
                 };
@@ -90,14 +90,14 @@ with builtins; let
                       pkgs.rustPlatform.bindgenHook
                       pkgs.makeWrapper
                     ]
-                    ++ lib.optionals stdenv.isLinux [ pkgs.udev ]
-                    ++ lib.optionals stdenv.isDarwin [ pkgs.libcxx ];
+                    ++ lib.optionals stdenv.hostPlatform.isLinux [ pkgs.udev ]
+                    ++ lib.optionals stdenv.hostPlatform.isDarwin [ pkgs.libcxx ];
                     PROTOC = "${pkgs.protobuf}/bin/protoc";
                     CXXFLAGS = "-std=c++11";
                     ROCKSDB_LIB_DIR = "${pkgs.rocksdb_8_11}/lib";
                     ROCKSDB_INCLUDE_DIR = "${pkgs.rocksdb_8_11}/include";
-                    CPPFLAGS = lib.optionals stdenv.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
-                    LDFLAGS = lib.optionals stdenv.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
+                    CPPFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-isystem ${lib.getDev pkgs.libcxx}/include/c++/v1";
+                    LDFLAGS = lib.optionals stdenv.hostPlatform.isDarwin "-L${lib.getLib pkgs.libcxx}/lib";
                     OPENSSL_NO_VENDOR = 1;
                   };
                   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -211,7 +211,7 @@ with builtins; let
                     doCheck = false;
                     nativeBuildInputs = [ pkgs.protobuf pkgs.pkg-config pkgs.makeWrapper ];
                     buildInputs = [ ]
-                      ++ lib.optionals stdenv.isLinux [ pkgs.udev ];
+                      ++ lib.optionals stdenv.hostPlatform.isLinux [ pkgs.udev ];
                   };
 
                 in
@@ -262,8 +262,8 @@ with builtins; let
           #           url = "${baseUrl}/nightly/latest/${sysStr}/avm.tar.gz";
           #           sha256 = v.${pkgs.stdenv.hostPlatform.system};
           #         };
-          #         nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-          #         buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+          #         nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.autoPatchelfHook ];
+          #         buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.stdenv.cc.cc.lib ];
           #         dontBuild = true;
           #         installPhase = ''
           #           mkdir -p $out/bin
@@ -299,8 +299,8 @@ with builtins; let
                     sha256 = v.${pkgs.stdenv.hostPlatform.system}.sha256;
                   };
                   dontUnpack = true;
-                  nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.autoPatchelfHook ];
-                  buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ];
+                  nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.autoPatchelfHook ];
+                  buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.stdenv.cc.cc.lib ];
                   dontBuild = true;
                   installPhase = ''
                     mkdir -p $out/bin
@@ -345,7 +345,7 @@ with builtins; let
                   pname = "solana-platform-tools";
                   doCheck = false;
                   dontCheckForBrokenSymlinks = true;
-                  nativeBuildInputs = lib.optionals stdenv.isLinux [ pkgs.autoPatchelfHook ];
+                  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [ pkgs.autoPatchelfHook ];
                   buildInputs = [
                     pkgs.libedit
                     pkgs.zlib
@@ -353,7 +353,7 @@ with builtins; let
                     pkgs.libclang.lib
                     pkgs.xz
                     pkgs.python315
-                  ] ++ lib.optionals stdenv.isLinux [ pkgs.udev ];
+                  ] ++ lib.optionals stdenv.hostPlatform.isLinux [ pkgs.udev ];
                   installPhase = ''
                     platformtools=$out/bin/platform-tools-sdk/sbf/dependencies/platform-tools
                     mkdir -p $platformtools
@@ -371,7 +371,7 @@ with builtins; let
 
                     cp -ar ${agaveSrc}/platform-tools-sdk/sbf/* $out/bin/platform-tools-sdk/sbf/
                   '';
-                  postFixup = lib.optionals stdenv.isLinux ''
+                  postFixup = lib.optionals stdenv.hostPlatform.isLinux ''
                     patchelf --replace-needed libedit.so.2 libedit.so $out/bin/platform-tools-sdk/sbf/dependencies/platform-tools/llvm/lib/liblldb.so.18.1.7-rust-dev
                   '';
                   stripExclude = [ "*.rlib" ];
@@ -466,7 +466,7 @@ with builtins; let
           (pkgs.rust-bin.stable."1.87.0".default.override {
             extensions = [ "rust-src" "rust-analyzer" ];
           })
-        ] ++ lib.optionals stdenv.isDarwin [ ];
+        ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ ];
 
         scripts = mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
           sol = ''solana --keypair "$KEY" $@'';

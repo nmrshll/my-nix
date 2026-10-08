@@ -152,8 +152,8 @@ with builtins; {
           else
             let
               # Mapping Nix system strings to the script's naming convention
-              os = if pkgs.stdenv.isDarwin then "darwin" else "linux";
-              arch = if pkgs.stdenv.isAarch64 then "arm64" else "amd64";
+              os = if pkgs.stdenv.hostPlatform.isDarwin then "darwin" else "linux";
+              arch = if pkgs.stdenv.hostPlatform.isAarch64 then "arm64" else "amd64";
               src = pkgs.fetchurl {
                 url = "https://downloads.poolside.ai/pool/v${version}/pool-${os}-${arch}.tar.gz";
                 sha256 = versions.${version}.sha256;
@@ -698,11 +698,11 @@ with builtins; {
               pkgs.pnpmConfigHook
               pkgs.makeWrapper
               pkgs.git
-            ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+            ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
               pkgs.pkg-config
             ];
 
-            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
               pkgs.glib
               pkgs.nss
               pkgs.libsecret

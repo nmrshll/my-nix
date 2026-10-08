@@ -253,7 +253,7 @@ with builtins; {
           let
             arch = elemAt (split "-" system) 0;
             url =
-              if pkgs.stdenv.isDarwin then "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${arch}.app.tar.gz"
+              if pkgs.stdenv.hostPlatform.isDarwin then "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${arch}.app.tar.gz"
               else "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${version}_amd64.deb";
             src = fetchurl {
               inherit url; sha256 = versions.${version}.${system}.sha256;
@@ -265,16 +265,16 @@ with builtins; {
             inherit pname version src;
 
             nativeBuildInputs =
-              pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
                 pkgs.autoPatchelfHook
                 pkgs.dpkg
                 pkgs.copyDesktopItems
               ]
-              ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
                 pkgs.makeWrapper
               ];
 
-            buildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
               pkgs.gcc-unwrapped.lib
               pkgs.alsa-lib
               pkgs.cairo
@@ -287,12 +287,12 @@ with builtins; {
               pkgs.webkitgtk_4_1
             ];
 
-            runtimeDependencies = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            runtimeDependencies = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
               pkgs.stdenv.cc.cc.lib
               pkgs.libayatana-appindicator
             ];
 
-            desktopItems = pkgs.lib.optionals pkgs.stdenv.isLinux [
+            desktopItems = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
               (pkgs.makeDesktopItem {
                 name = "handy";
                 desktopName = "Handy";
@@ -305,7 +305,7 @@ with builtins; {
             ];
 
             unpackPhase =
-              if pkgs.stdenv.isLinux then ''
+              if pkgs.stdenv.hostPlatform.isLinux then ''
                 runHook preUnpack
                 dpkg -x $src .
                 runHook postUnpack
@@ -317,7 +317,7 @@ with builtins; {
                 runHook postUnpack
               '';
             installPhase =
-              if pkgs.stdenv.isLinux then ''
+              if pkgs.stdenv.hostPlatform.isLinux then ''
                 runHook preInstall
                 # Install the binary
                 install -Dm755 usr/bin/handy $out/bin/handy
@@ -426,7 +426,7 @@ with builtins; {
     #           license = lib.licenses.mit;
     #           maintainers = [ ];
     #           platforms = lib.platforms.darwin; # macOS only (requires Apple Neural Engine)
-    #           broken = !pkgs.stdenv.isDarwin;
+    #           broken = !pkgs.stdenv.hostPlatform.isDarwin;
     #         };
     #       };
     #   in

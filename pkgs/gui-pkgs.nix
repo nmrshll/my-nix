@@ -115,7 +115,7 @@
                 };
               };
             in
-            if pkgs.stdenv.isDarwin then
+            if pkgs.stdenv.hostPlatform.isDarwin then
               pkgs.stdenvNoCC.mkDerivation
                 (sharedDrvAttrs // {
                   buildInputs = [ pkgs.bzip2 ];
