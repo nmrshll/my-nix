@@ -5,6 +5,39 @@
       let
         bin = l.mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs) tmux; });
 
+        # shared zellij teardown helpers, spliced into zmux scripts: kill a
+        # process tree (children first) and tear down one named session
+        # gracefully (kill-session) with force fallback (delete-session
+        # --force) when it lingers
+        zmuxKillLib = ''
+          _zmux_kill_tree() {
+            _ksig="$1"; _kroot="$2"
+            for _kchild in $(pgrep -P "$_kroot" 2>/dev/null); do _zmux_kill_tree "$_ksig" "$_kchild"; done
+            kill "-$_ksig" "$_kroot" 2>/dev/null || true
+          }
+          _zmux_session_active() {
+            "$1" list-sessions 2>/dev/null | awk -v s="$2" 'NF && $1 == s { found = 1 } END { exit !found }'
+          }
+          _zmux_teardown_session() {
+            _tz="$1"; _ts="$2"
+            if ! _zmux_session_active "$_tz" "$_ts"; then
+              "$_tz" delete-session "$_ts" 2>/dev/null || true
+              return 0
+            fi
+            "$_tz" kill-session "$_ts" 2>/dev/null || true
+            _ti=0
+            while [ "$_ti" -lt 10 ]; do
+              _zmux_session_active "$_tz" "$_ts" || break
+              _ti=$((_ti + 1)); sleep 0.5
+            done
+            if _zmux_session_active "$_tz" "$_ts"; then
+              "$_tz" delete-session --force "$_ts" 2>/dev/null || true
+              sleep 1
+            fi
+            "$_tz" delete-session "$_ts" 2>/dev/null || true
+          }
+        '';
+
         # debug-bash = ''
         #   local var_name="$1"
         #   if [ -n "${!var_name}" ]; then
@@ -211,6 +244,26 @@
           '';
           # pstree = ''${pkgs.pstree}/bin/pstree "$@" '';
 
+          # force-kill ALL zellij sessions, regardless of which script spawned
+          # them: ask zellij nicely first, then TERM/KILL the whole process
+          # tree under every zellij process if sessions linger
+          zellij-kill-all = ''
+            ${zmuxKillLib}
+            ZELLIJ="${pkgs.zellij}/bin/zellij"
+            "$ZELLIJ" kill-all-sessions --yes 2>/dev/null || true
+            _i=0
+            while [ "$_i" -lt 10 ]; do
+              [ -z "$("$ZELLIJ" list-sessions 2>/dev/null | grep . || true)" ] && break
+              _i=$((_i + 1)); sleep 0.5
+            done
+            if [ -n "$("$ZELLIJ" list-sessions 2>/dev/null | grep . || true)" ]; then
+              for _pid in $(pgrep -x zellij 2>/dev/null); do _zmux_kill_tree TERM "$_pid"; done
+              sleep 2
+              for _pid in $(pgrep -x zellij 2>/dev/null); do _zmux_kill_tree KILL "$_pid"; done
+            fi
+            "$ZELLIJ" delete-all-sessions --yes --force 2>/dev/null || true
+          '';
+
           # run-net = ''set -x; surfpool start '';
           dev = ''rip surfpool; ${mkPc [
               { name = "surfpool"; command = "set -x; surfpool start "; cleanup = "${bin.rip} surfpool"; }
@@ -243,8 +296,24 @@
 
 
 
-        mkZmux = commandSet:
+        # mkZmux [ { name; command; cleanup?; } ] (anonymous session, legacy)
+        # mkZmux { session = "name"; commands = [ ... ]; } (named session:
+        # any previous session with the same name - i.e. spawned by a
+        # previous run of this same script - is torn down on launch,
+        # gracefully first, forcefully if it lingers; other sessions are
+        # left alone)
+        mkZmux = commandSetArg:
           let
+            commandSet = if isList commandSetArg then commandSetArg else commandSetArg.commands;
+            session = if isList commandSetArg then null else commandSetArg.session or null;
+
+            teardownPrevious =
+              if session == null then ""
+              else ''
+                ${zmuxKillLib}
+                _zmux_teardown_session "${pkgs.zellij}/bin/zellij" "${session}"
+              '';
+            sessionFlag = if session == null then "" else ''--session "${session}"'';
 
             mkCmd = cmd: "${(pkgs.writeShellScriptBin "cmd" cmd)}/bin/cmd";
 
@@ -324,9 +393,10 @@
           in
           ''
             ${cleanup-all}
+            ${teardownPrevious}
             ${mkGrantPluginPermissions verticalTabsPlugin}
             set -x
-            ${pkgs.zellij}/bin/zellij --config ${config} --new-session-with-layout ${layout}
+            ${pkgs.zellij}/bin/zellij --config ${config} ${sessionFlag} --new-session-with-layout ${layout}
             ${cleanup-all}
           '';
 
