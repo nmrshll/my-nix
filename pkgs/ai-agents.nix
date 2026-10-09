@@ -1,6 +1,77 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
+    # nixpkgs' current kilo is marked broken; the legacy kilocode-cli lacks
+    # the current CLI/ACP implementation. Use pinned upstream binaries instead.
+    ownPkgs.kilo = {}:
+      let
+        versions."7.8.8" = {
+          darwin-arm64 = "sha512-+ed1qYwfmFX3Ofmfm6SdFUW/ygCcvDS2aAB3jyphgT8u6p0hrn0tBj/IeghW8ouztv9Kcep2FR17eGB0+bRZpg==";
+          darwin-x64-baseline = "sha512-nf3mQRwcGqHTaDi64y8nAk0cbxBEP3BT3lvfLoTk9QFETZ31uCAcsYtj/F4owh/ICpD9JtKuWzy8NxHeuqcKKQ==";
+          linux-arm64 = "sha512-JrZu4EsdaajRsafvgXN+dEcscV7VKM6sGp3Xm51EndrTnI7+76tKeyrPs6J5Bvn2yR/BNKhoId4LEjwjQGSHYg==";
+          linux-x64-baseline = "sha512-EroORIb8BtRTm0sT7kdufz3IG24k8czJVSHHnXAffzl+h25HSrljvZBGHLa7p4D+R5BTPCkbDohg6+Qo+WxpXg==";
+        };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let
+            target = {
+              aarch64-darwin = "darwin-arm64";
+              x86_64-darwin = "darwin-x64-baseline";
+              aarch64-linux = "linux-arm64";
+              x86_64-linux = "linux-x64-baseline";
+            }.${system} or (throw "Unsupported Kilo system: ${system}");
+            src = pkgs.fetchurl {
+              url = "https://registry.npmjs.org/@kilocode/cli-${target}/-/cli-${target}-${version}.tgz";
+              hash = versions.${version}.${target};
+            };
+          in
+          pkgs.stdenvNoCC.mkDerivation {
+            pname = "kilo";
+            inherit version src;
+            nativeBuildInputs = [ pkgs.makeBinaryWrapper ]
+              ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.autoPatchelfHook ];
+            buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+              pkgs.stdenv.cc.cc.lib pkgs.openssl pkgs.zlib pkgs.libcap
+            ];
+            dontConfigure = true;
+            dontBuild = true;
+            dontStrip = true; # Bun executables contain embedded runtime data.
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/libexec/kilo $out/bin
+              # Keep wasm parsers, console assets, sandbox workers and licenses
+              # beside the executable, where the compiled runtime finds them.
+              cp -R bin/. $out/libexec/kilo/
+              ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
+                # Patchelf changes the bundled bwrap's embedded checksum.
+                # Use Nix's bubblewrap through the supported override instead.
+                rm -f $out/libexec/kilo/bwrap
+              ''}
+              makeBinaryWrapper $out/libexec/kilo/kilo $out/bin/kilo \
+                --set KILO_DISABLE_AUTOUPDATE true \
+                ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux "--set KILO_BWRAP_PATH ${lib.getExe pkgs.bubblewrap}"} \
+                --prefix PATH : ${lib.makeBinPath ([ pkgs.ripgrep pkgs.gitMinimal ]
+                  ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.sysctl ])}
+              ln -s kilo $out/bin/kilocode
+              runHook postInstall
+            '';
+            doInstallCheck = true;
+            nativeInstallCheckInputs = [ pkgs.writableTmpDirAsHomeHook pkgs.versionCheckHook ];
+            versionCheckKeepEnvironment = [ "HOME" ];
+            versionCheckProgram = "${placeholder "out"}/bin/kilo";
+            versionCheckProgramArg = "--version";
+            passthru = { inherit versions mkPkg src; };
+            meta = {
+              description = "Standalone Kilo Code CLI with terminal UI and native ACP support";
+              homepage = "https://kilo.ai/docs/code-with-ai/platforms/cli";
+              license = lib.licenses.mit;
+              sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+              mainProgram = "kilo";
+              platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+            };
+          };
+      in
+      mkPkg { };
+
     ownPkgs.pi-coding-agent = {}:
       let
         versions."0.70.2" = { sha256 = "qqmJloTp3mWuZBGgpwoyoFyXx6QD8xhJEwCZb7xFabM="; npmDepsHash = "sha256-ImDvTC0Nm+IGYJuqjwUUfnOtA65uJvjlpP4h2Xt/2vE="; };
