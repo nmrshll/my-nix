@@ -85,9 +85,10 @@ with builtins; let
         buildCrate = path: craneLib.buildPackage (perCrateArgs path);
 
 
-        workspaceMembers =
-          if pathExists (self.outPath + "/Cargo.toml") then (fromTOML (readFile (self.outPath + "/Cargo.toml"))).workspace.members or [ ]
-          else [ ];
+        rootCargoToml =
+          if pathExists (self.outPath + "/Cargo.toml") then fromTOML (readFile (self.outPath + "/Cargo.toml"))
+          else { };
+        workspaceMembers = rootCargoToml.workspace.members or [ ];
         expandWsMember = member:
           if lib.hasSuffix "/*" member then
             let
@@ -101,7 +102,7 @@ with builtins; let
         validCratePaths = filter (crate: pathExists (relPath "/${crate}/Cargo.toml")) (concatLists (map expandWsMember workspaceMembers));
         crates = listToAttrs (map (path: { name = baseNameOf path; value = buildCrate path; }) validCratePaths);
 
-        tests = lib.optionalAttrs (pathExists (self.outPath + "/Cargo.toml")) {
+        tests = lib.optionalAttrs (rootCargoToml ? package || validCratePaths != [ ]) {
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
