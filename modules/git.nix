@@ -128,6 +128,7 @@ with builtins; let
       in
       {
         expose.packages = scripts;
+        myDevShell.buildInputs = attrValues scripts;
       };
   };
 
