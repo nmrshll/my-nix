@@ -172,6 +172,7 @@ with builtins; let
   flakeModules.moduleTypes = { l, ... }: {
     options.flakeModules = l.mkOption { type = l.types.lazyAttrsOf l.types.unspecified; default = { }; };
     options.flake.flakeModules = l.mkOption { type = l.types.lazyAttrsOf l.types.unspecified; default = { }; };
+    options.flake.flakeModuleGroups = l.mkOption { type = l.types.lazyAttrsOf l.types.unspecified; default = { }; };
     # config.flake.flakeModules = (l.deepMergeSetList [
     #   config.flakeModules
     #   # { utils.all.imports = attrValues config.flakeModules.utils; }
@@ -185,7 +186,8 @@ in
   # anonymous function modules are not deduped, so including both would declare
   # `options.ownPkgs` twice. `ownPkgs2` stays importable standalone for
   # back-compat (`imports.my-nix.flakeModules.ownPkgs2` pulls in everything).
-  flake.flakeModules = flakeModules // {
+  flake.flakeModules = flakeModules;
+  flake.flakeModuleGroups = {
     utils = removeAttrs flakeModules [ "ownPkgs2" ];
     essentials = removeAttrs flakeModules [ "ownPkgs2" ];
   };

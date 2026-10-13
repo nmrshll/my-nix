@@ -50,7 +50,7 @@
         checks = self'.packages;
       };
 
-      flake.flakeModules = {
+      flake.flakeModuleGroups = {
         utils = extraFlakeModules;
         essentials = extraFlakeModules;
       };
