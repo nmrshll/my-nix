@@ -55,40 +55,12 @@ with builtins; let
             fi
           '';
           configure-vscode = ''
-            SETTINGS_PATH="${wd}/.vscode/settings.json";
-            ORIGINAL_SETTINGS=$(if [[ -f "$SETTINGS_PATH" && $(file --mime "$SETTINGS_PATH") =~ "application/json" ]]; then cat "$SETTINGS_PATH"; else echo "{}"; fi);
-            MERGED_SETTINGS=$(echo "$ORIGINAL_SETTINGS" | ${bin.jq} --argjson new_data '${toJSON config.vscode.settings}' '. * $new_data');
-            mkdir -p "$(dirname "$SETTINGS_PATH")";
-            echo "$MERGED_SETTINGS" >| "$SETTINGS_PATH";
-          '';
-          # configure-vscode = ''set -x
-          #       if which code | grep -q "/bin/code"; then
-          #         if [ -f ./Cargo.toml ]; then
-          #           ${bin.configure-vscode-rust}
-          #         fi
-          #       fi
-          #     '';
-          configure-vscode-rust = with bin; ''
-            if [ `expr "$(which code)" : "/bin/code"` ]; then
-                SETTINGS_PATH="${wd}/.vscode/settings.json"; mkdir -p $(dirname "$SETTINGS_PATH");
-                ORIGINAL_SETTINGS=$(if [[ $(file --mime "$SETTINGS_PATH") =~ "application/json" ]]; then cat "$SETTINGS_PATH"; else echo "{}"; fi)
-                NEW_SETTINGS=`echo "$ORIGINAL_SETTINGS" \
-                    | ${jq} ".\"rust-analyzer.server.extraEnv\".\"CARGO\" |= \"$(which cargo)\"" \
-                    | ${jq} ".\"rust-analyzer.server.extraEnv\".\"RUSTC\" |= \"$(which rustc)\"" \
-                    | ${jq} ".\"rust-analyzer.server.extraEnv\".\"RUSTFMT\" |= \"$(which rustfmt)\"" \
-                    | ${jq} ".\"rust-analyzer.server.extraEnv\".\"SQLX_OFFLINE\" |= 1" \
-                    | ${jq} ".\"rust-analyzer.server.extraEnv\".\"RUSTFLAGS\" |= \"$(echo $RUSTFLAGS)\"" \
-                    | ${jq} ".\"rust-analyzer.server.path\" |= \"$(which rust-analyzer)\"" \
-                    | ${jq} ".\"rust-analyzer.runnables.command\" |= \"$(which cargo)\"" \
-                    | ${jq} ".\"rust-analyzer.runnables.extraEnv\".\"CARGO\" |= \"$(which cargo)\"" \
-                    | ${jq} ".\"rust-analyzer.runnables.extraEnv\".\"RUSTC\" |= \"$(which rustc)\"" \
-                    | ${jq} ".\"rust-analyzer.runnables.extraEnv\".\"RUSTFMT\" |= \"$(which rustfmt)\"" \
-                    | ${jq} ".\"rust-analyzer.runnables.extraEnv\".\"SQLX_OFFLINE\" |= 1" \
-                    | ${jq} ".\"rust-analyzer.runnables.extraEnv\".\"RUSTFLAGS\" |= \"$(echo $RUSTFLAGS)\""
-                `;
-                if [ "$(cat $SETTINGS_PATH)" != "$NEW_SETTINGS" ]; then
-                    echo "$NEW_SETTINGS" >| "$SETTINGS_PATH"
-                fi
+            if (code --help | grep -q "Visual Studio Code"); then
+              SETTINGS_PATH="${wd}/.vscode/settings.json";
+              ORIGINAL_SETTINGS=$(if [[ -f "$SETTINGS_PATH" && $(file --mime "$SETTINGS_PATH") =~ "application/json" ]]; then cat "$SETTINGS_PATH"; else echo "{}"; fi);
+              MERGED_SETTINGS=$(echo "$ORIGINAL_SETTINGS" | ${bin.jq} --argjson new_data '${toJSON config.vscode.settings}' '. * $new_data');
+              mkdir -p "$(dirname "$SETTINGS_PATH")";
+              echo "$MERGED_SETTINGS" >| "$SETTINGS_PATH";
             fi
           '';
           configure-vscode-noir = with bin; ''
