@@ -217,6 +217,26 @@ with builtins; let
               # RUSTFLAGS = env.RUST_BACKTRACE; # Assuming RUSTFLAGS refers to the RUST_BACKTRACE from the env block
             } // config.rust.buildEnv;
           };
+
+          # Zed: nested lsp."rust-analyzer".{binary,initialization_options}; env also inherited via `zed .`.
+          zed.settings =
+            let
+              stringifyEnv = lib.mapAttrs (_: v: if builtins.isBool v then (if v then "true" else "false") else builtins.toString v);
+              serverEnv = stringifyEnv ({
+                CARGO = "${config.rust.toolchain}/bin/cargo";
+                RUSTC = "${config.rust.toolchain}/bin/rustc";
+                RUSTFMT = "${config.rust.toolchain}/bin/rustfmt";
+              } // config.rust.buildEnv);
+            in
+            {
+              lsp.rust-analyzer.binary = {
+                path = "${config.rust.toolchain}/bin/rust-analyzer";
+                env = serverEnv;
+              };
+              lsp.rust-analyzer.initialization_options = {
+                check.command = "clippy";
+              };
+            };
         };
       };
   };

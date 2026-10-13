@@ -63,6 +63,15 @@ with builtins; let
               echo "$MERGED_SETTINGS" >| "$SETTINGS_PATH";
             fi
           '';
+          configure-zed = ''
+            if command -v zed >/dev/null 2>&1; then
+              SETTINGS_PATH="${wd}/.zed/settings.json";
+              ORIGINAL_SETTINGS=$(if [[ -f "$SETTINGS_PATH" && $(file --mime "$SETTINGS_PATH") =~ "application/json" ]]; then cat "$SETTINGS_PATH"; else echo "{}"; fi);
+              MERGED_SETTINGS=$(echo "$ORIGINAL_SETTINGS" | ${bin.jq} --argjson new_data '${toJSON config.zed.settings}' '. * $new_data');
+              mkdir -p "$(dirname "$SETTINGS_PATH")";
+              echo "$MERGED_SETTINGS" >| "$SETTINGS_PATH";
+            fi
+          '';
         };
 
       in
@@ -72,12 +81,18 @@ with builtins; let
           default = { };
           description = "VSCode settings (local to repo)";
         };
+        options.zed.settings = lib.mkOption {
+          type = lib.types.attrs;
+          default = { };
+          description = "Zed settings (local to repo, merged into .zed/settings.json)";
+        };
         config = {
           inherit bin;
           # packages = scripts;
           expose.packages = scripts;
           myDevShell.buildInputs = (attrValues scripts);
           myDevShell.shellHooks.configure-editors = bin.configure-editors;
+          myDevShell.shellHooks.configure-zed = "${scripts.configure-zed}/bin/configure-zed";
         };
       };
   };
