@@ -239,6 +239,11 @@ with builtins; {
 
     ownPkgs.handy = {}:
       let
+        versions."0.9.8" = {
+          x86_64-linux.sha256 = "sha256-Tv4f3MK2jpVhLoZoEMyyPga73wBKToV94IYrDGknyqg=";
+          x86_64-darwin.sha256 = "sha256-B2I6EEpZkyzhv/OgjrwKuB5dv0BAiajaYUHO+m7mh7w=";
+          aarch64-darwin.sha256 = "sha256-5pMaFIBerEeHjl6Aun3pOVzrrzVdS34jH72sUyFp6aQ=";
+        };
         versions."0.9.4".aarch64-darwin.sha256 = "sha256:0xi4wxszpb6scpcadns2fxhhxr405i9v2pi5nsnc6kg4zm6fry5v";
         versions."0.8.2".aarch64-darwin.sha256 = "1a2156h5sfnr5mydps7b6r701nqzkpmhb8m1wpizdppchy563vnp";
         versions."0.7.11".aarch64-darwin.sha256 = "0ill0rsmvxy81yhgdp4wk39nvb60r2qhcv12fywb1z5ppab4d1za";
@@ -249,9 +254,9 @@ with builtins; {
           x86_64-darwin.sha256 = "yTRNaH/P5nMKT2oYk9b9oRH8s6PAi30Vtfw9TgE7WnE=";
           aarch64-darwin.sha256 = "9trjwzQIqM5Okvnj2GAlBxKajyBiM0HbNmw4JukUsF4=";
         };
-        mkPkg = { version ? (l.latest (l.filterAttrs (name: v: v ? "${system}") versions)), ... }:
+        mkPkg = { version ? (l.latest versions), ... }:
           let
-            arch = elemAt (split "-" system) 0;
+            arch = if system == "x86_64-darwin" then "x64" else elemAt (split "-" system) 0;
             url =
               if pkgs.stdenv.hostPlatform.isDarwin then "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${arch}.app.tar.gz"
               else "https://github.com/cjpais/Handy/releases/download/v${version}/Handy_${version}_amd64.deb";
@@ -337,7 +342,7 @@ with builtins; {
                 cp -r ./unpacked/Handy.app $out/Applications/
                 # Create a wrapper script in bin
                 mkdir -p $out/bin
-                makeWrapper $out/Applications/Handy.app/Contents/MacOS/Handy $out/bin/handy
+                makeWrapper $out/Applications/Handy.app/Contents/MacOS/handy $out/bin/handy
                 runHook postInstall
               '';
 
