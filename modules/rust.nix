@@ -1,7 +1,7 @@
 # thisFlake:
 with builtins; let
   flakeModules.rust = part@{ self, ... }: {
-    perSystem = { pkgs, config, l, lib, ... }:
+    perSystem = { pkgs, config, l, lib, bash, ... }:
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { /* inherit (pkgs); */ });
 
@@ -109,7 +109,7 @@ with builtins; let
           });
         };
 
-        wd = "$(git rev-parse --show-toplevel)";
+        inherit (bash) wd;
         scripts = mapAttrs pkgs.writeShellScriptBin {
           disable-gatekeeper = ''xattr -d com.apple.quarantine "${wd}/target/debug/"* '';
           fix-fmt = ''

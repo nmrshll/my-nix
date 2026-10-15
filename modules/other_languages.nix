@@ -3,9 +3,9 @@
 #   imports = [ inputs.my-nix.flakeModules.noir ];
 with builtins; let
   flakeModules.noir = { ... }: {
-    perSystem = { pkgs, config, lib, ... }:
+    perSystem = { pkgs, config, lib, bash, ... }:
       with builtins; let
-        wd = "$(git rev-parse --show-toplevel)";
+        inherit (bash) wd;
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") { inherit (pkgs) jq; };
         scripts = mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
           configure-vscode-noir = ''

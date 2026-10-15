@@ -1,13 +1,13 @@
 # thisFlake:
 with builtins; let
   flakeModules.services = { ... }: {
-    perSystem = { pkgs, ... }:
+    perSystem = { pkgs, bash, ... }:
       with builtins; let
 
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") scripts;
 
         wdname = "$(basename ${wd})";
-        wd = "$(git rev-parse --show-toplevel)";
+        inherit (bash) wd;
         scripts = mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
           sql-migrate-and-export = ''deps; await_postgres $POSTGRES_PORT; sqlx migrate run; cargo sqlx prepare; '';
           # await_postgres_up = writeScriptBin "await_postgres_up" ''#!/usr/bin/env bash

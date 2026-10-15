@@ -1,7 +1,7 @@
 # thisFlake:
 { l, ... }: with builtins; let
   flakeModules.cli-tools = {
-    perSystem = { pkgs, ... }:
+    perSystem = { pkgs, bash, ... }:
       let
         bin = l.mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { inherit (pkgs) tmux; });
 
@@ -47,7 +47,6 @@
         #   fi
         # '';
 
-        bash.wd = "$(git rev-parse --show-toplevel)";
         scripts = with bash; l.mapAttrs pkgs.writeShellScriptBin {
           dotenv = ''
             # Source .env with `set -a` so quoted values (containing spaces) survive

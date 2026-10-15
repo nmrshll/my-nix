@@ -1,4 +1,4 @@
-{ l, ... }:
+{ l, inputs, ... }:
 let
   tests.flatMapPkgs = {
     simple = {
@@ -31,5 +31,18 @@ in
       ${pkgs.bash}/bin/bash ${../tests/bash-debug.sh} ${pkgs.writeText "bash-debug-fragment" l.sh_use_dbg}
       touch "$out"
     '';
+    checks.bash-fragments =
+      let
+        results = import ../tests/bash-fragments.nix {
+          inherit (pkgs) lib;
+          flake-parts = inputs.fp;
+        };
+      in
+      pkgs.runCommand "bash-fragments-tests" {
+        results = builtins.toJSON results;
+      } ''
+        printf '%s\n' "$results"
+        touch "$out"
+      '';
   };
 }

@@ -2,7 +2,7 @@
 with builtins; let
   flakeModules.editors = { ... }: {
     # TODO
-    perSystem = { pkgs, config, lib, ... }:
+    perSystem = { pkgs, config, lib, bash, ... }:
       with builtins; let
         # l = lib // builtins;
         # editorPkgs = lib.mapAttrs (name: mkPkg: pkgs.callPackage mkPkg { }) (import ../pkgs/editor-pkgs.nix);
@@ -47,7 +47,7 @@ with builtins; let
           # '';
         };
 
-        wd = "$(git rev-parse --show-toplevel)";
+        inherit (bash) wd;
         scripts = mapAttrs (n: t: pkgs.writeShellScriptBin n t) {
           configure-editors = ''
             if (code --help | grep -q "Visual Studio Code"); then
