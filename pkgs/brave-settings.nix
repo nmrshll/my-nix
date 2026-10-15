@@ -32,18 +32,36 @@
           nativeCheckInputs = [ pkgs.nodejs ];
           doCheck = true;
         };
+        launcher = pkgs.writeShellApplication {
+          name = "brave-settings-launch";
+          text = builtins.readFile ./brave-settings-launch.sh;
+        };
         runner = pkgs.writeShellApplication {
           name = "brave-settings-sync";
           runtimeInputs = [ pkgs.nodejs ];
           text = ''exec ${helper}/bin/brave-settings "$@"'';
-          derivationArgs.passthru.wrapBrave = { brave, stateDir, dataDir }:
+          derivationArgs.passthru = {
+            tests.lifecycle = pkgs.runCommand "brave-settings-launch-test" {
+              nativeBuildInputs = [ pkgs.python3 ];
+            } ''
+              python3 ${./test-brave-settings-launch.py} ${launcher}/bin/brave-settings-launch
+              touch "$out"
+            '';
+            wrapBrave = { brave, stateDir, dataDir }:
             brave.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
               postInstall = (old.postInstall or "") + ''
-                wrapProgram "$out/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
-                  --run ${pkgs.lib.escapeShellArg ''${runner}/bin/brave-settings-sync apply-pending --state-dir ${pkgs.lib.escapeShellArg stateDir} --brave-data-dir ${pkgs.lib.escapeShellArg dataDir} || echo 'Brave extension updates remain queued; see brave-settings.log' >&2''}
+                program="$out/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+                real="$out/Applications/Brave Browser.app/Contents/MacOS/.Brave Browser-settings-wrapped"
+                mv "$program" "$real"
+                makeWrapper ${launcher}/bin/brave-settings-launch "$program" \
+                  --set BRAVE_SETTINGS_SYNC ${runner}/bin/brave-settings-sync \
+                  --set BRAVE_SETTINGS_STATE_DIR ${pkgs.lib.escapeShellArg stateDir} \
+                  --set BRAVE_SETTINGS_DATA_DIR ${pkgs.lib.escapeShellArg dataDir} \
+                  --set BRAVE_SETTINGS_BROWSER "$real"
               '';
             });
+          };
         };
       in runner;
   };
