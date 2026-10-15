@@ -25,5 +25,11 @@ let
 
 in
 {
-  # TODO here add tests to flake.checks
+  # TODO also wire the flatMapPkgs tests above into flake.checks.
+  perSystem = { pkgs, l, ... }: {
+    checks.bash-debug = pkgs.runCommand "bash-debug-tests" { } ''
+      ${pkgs.bash}/bin/bash ${../tests/bash-debug.sh} ${pkgs.writeText "bash-debug-fragment" l.sh_use_dbg}
+      touch "$out"
+    '';
+  };
 }

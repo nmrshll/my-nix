@@ -10,6 +10,18 @@
     dbg4 = o: (lib.traceSeqN 4 o) o;
     dbg5 = o: (lib.traceSeqN 5 o) o;
 
+    # Inject into Bash scripts with ${l.sh_use_dbg}; call dbg_vars NAME ...
+    # (or dbg_var NAME). Functions inspect the caller's non-exported locals.
+    sh_use_dbg = ''
+      dbg_vars() {
+        if (( $# )); then
+          # Unset variables should not abort a script using set -e.
+          declare -p -- "$@" >&2 || true
+        fi
+      }
+      dbg_var() { dbg_vars "$@"; }
+    '';
+
     # SETS & LISTS
     # TODO use mapAttrs ??
     mapKeys = f: obj: listToAttrs (map
