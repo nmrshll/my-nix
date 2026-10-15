@@ -1,4 +1,5 @@
 with builtins; {
+  imports = [ ./brave-settings.nix ];
   config.perSystem = { pkgs, l, system, ... }: {
 
     ownPkgs.atlassian-cli = {}:
