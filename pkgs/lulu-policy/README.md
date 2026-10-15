@@ -26,7 +26,11 @@ updated last. No daemon is forcibly restarted.
 
 `restore POLICY.json` requires the extension to be stopped and restores the
 previous profile selection without deleting either profile. `status` compares
-the active profile's saved rules and preferences and reports extension state.
+the active profile's saved rule conditions/actions and preferences and reports
+extension state. LuLu's GUI-generated UUIDs, names, and constructor scope are
+metadata; an enabled rule's nil disabled field is equivalent to zero. These
+differences are ignored, while changes to paths, domains, actions, or enabled
+state are detected.
 It cannot prove live traffic enforcement; verify behavior after activation.
 
 Tests cover no writes while running, preserving old profiles, idempotence,

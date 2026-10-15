@@ -138,8 +138,20 @@ def configured(base, policy):
         if len(observed) != len(expected):
             return False
         for wanted in expected:
-            if not any(all(item.get(field) == value for field, value in wanted.items())
-                       for item in observed):
+            # UUID/name/scope are GUI metadata after construction, not matching
+            # conditions. LuLu's editor also stores nil for enabled rules.
+            def matches(item):
+                for field, value in wanted.items():
+                    if field in ("uuid", "name", "scope"):
+                        continue
+                    actual = item.get(field)
+                    if field == "isDisabled":
+                        actual = actual or 0
+                    if actual != value:
+                        return False
+                return True
+
+            if not any(matches(item) for item in observed):
                 return False
     return True
 

@@ -41,6 +41,18 @@ class PolicyTests(unittest.TestCase):
         self.policy["preferences"]["disabled"] = True
         self.assertFalse(configured(self.base, self.policy))
 
+    def test_gui_metadata_does_not_hide_enforcement_drift(self):
+        apply(self.base, self.policy, False)
+        gui = {key: [dict(item) for item in items] for key, items in self.policy["rules"].items()}
+        rule = gui["com.apple.Safari"][0]
+        rule.update(uuid="gui-generated", name="*", scope=None, isDisabled=None)
+        path = self.base / "Profiles/nix-safari-youtube/rules.plist"
+        path.write_bytes(archive_rules(gui))
+        self.assertTrue(configured(self.base, self.policy))
+        rule["action"] = 1
+        path.write_bytes(archive_rules(gui))
+        self.assertFalse(configured(self.base, self.policy))
+
 
 if __name__ == "__main__":
     unittest.main()
