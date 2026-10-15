@@ -111,6 +111,7 @@ with builtins; let
 
         wd = "$(git rev-parse --show-toplevel)";
         scripts = mapAttrs pkgs.writeShellScriptBin {
+          disable-gatekeeper = ''xattr -d com.apple.quarantine "${wd}/target/debug/"* '';
           fix-fmt = ''
             cargo fmt --all --
             cargo clippy --fix
