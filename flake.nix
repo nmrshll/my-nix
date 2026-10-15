@@ -9,7 +9,7 @@
   nixConfig.allow-unsafe-native-code-during-evaluation = true;
   nixConfig.allow-import-from-derivation = true;
 
-  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ lib, ... }:
+  outputs = inputs@{ fp, ... }: fp.lib.mkFlake { inherit inputs; } ({ lib, config, ... }:
     let
       l = (import ./utils/lib.p.nix { lib = lib; }).extraLib;
 
@@ -49,6 +49,9 @@
         # This tells Nix: "To check this flake, try to build all my packages"
         checks = self'.packages;
       };
+
+      # TEMP: Compatibility for consumers predating the flakeModuleGroups rename.
+      flake.flakeModules.essentials = config.flake.flakeModuleGroups.essentials;
 
       flake.flakeModuleGroups = {
         utils = extraFlakeModules;
