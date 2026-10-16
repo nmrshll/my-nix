@@ -264,13 +264,13 @@
           '';
 
           # run-net = ''set -x; surfpool start '';
-          dev = ''rip surfpool; ${mkPc [
-              { name = "surfpool"; command = "set -x; surfpool start "; cleanup = "${bin.rip} surfpool"; }
-              { name = "dev"; command = "npm run dev"; }
-              { name = "logs"; command = "tail -f logs/app.log"; }
-              { command = "watch src/"; } # name auto-derived from command
-            ]}
-          '';
+          # dev = ''rip surfpool; ${mkPc [
+          #     { name = "surfpool"; command = "set -x; surfpool start "; cleanup = "${bin.rip} surfpool"; }
+          #     { name = "dev"; command = "npm run dev"; }
+          #     { name = "logs"; command = "tail -f logs/app.log"; }
+          #     { command = "watch src/"; } # name auto-derived from command
+          #   ]}
+          # '';
 
 
           # long-loop = ''for i in {1..1000000}; do echo "Processing number $i"; sleep 0.1; done'';
