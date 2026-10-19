@@ -338,9 +338,35 @@
               fi
             '';
 
+            shortcutsText = pkgs.runCommand "zellij-shortcuts.txt" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              ${pkgs.zellij}/bin/zellij setup --dump-config > defaults.kdl
+              python3 ${../utils/zellij-shortcuts.py} defaults.kdl > "$out"
+            '';
+            shortcutsPager = pkgs.writeShellScript "zellij-shortcuts" ''
+              # Use a predictable pager: no user LESS options, q closes only help.
+              export LESS= LESSOPEN= LESSCLOSE= LESSKEY= LESSKEYIN=
+              exec ${pkgs.less}/bin/less --no-init --prompt='Shortcuts | arrows/PgUp/PgDn scroll | / search | q close' ${shortcutsText}
+            '';
+            shortcutsHint = pkgs.writeShellScript "zellij-shortcuts-hint" ''
+              printf '\033[?25l F1: keyboard shortcuts | Ctrl+Q: quit session + all tabs'
+              exec ${pkgs.coreutils}/bin/sleep infinity
+            '';
+
             layoutContent = ''
               keybinds {
                   shared {
+                      bind "F1" {
+                          SwitchToMode "Normal";
+                          Run "${shortcutsPager}" {
+                              floating true
+                              close_on_exit true
+                              name "Keyboard shortcuts"
+                              x "5%"
+                              y "5%"
+                              width "90%"
+                              height "90%"
+                          }
+                      }
                       // Toggle selectability (for resizing the pane)
                       bind "Alt s" {
                           MessagePlugin "file:${verticalTabsPlugin}" {
@@ -369,13 +395,16 @@
                       }
                       children
                   }
+                  pane size=1 borderless=true command="${shortcutsHint}" {
+                      // Persistent discoverability even when the status bar is crowded.
+                  }
                   pane size=1 borderless=true {
                       plugin location="zellij:status-bar"
                   }
                 }
                 ${l.concatStringsSep "\n" (map (entry: ''
                   tab name="${entry.name or (l.strings.substring 0 20 entry.command)}" {
-                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" command="${mkCmd entry.command}"
+                    pane name="${entry.name or (l.strings.substring 0 20 entry.command)}" focus=true command="${mkCmd entry.command}"
                   }
                 '') commandSet)}
               }
