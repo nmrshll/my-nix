@@ -343,6 +343,9 @@
               python3 ${../utils/zellij-shortcuts.py} defaults.kdl > "$out"
             '';
             shortcutsPager = pkgs.writeShellScript "zellij-shortcuts" ''
+              # Switch here rather than in the F1 binding: otherwise Zellij includes
+              # F1 in its mode-switch keys and loses the shared Ctrl+ status-bar prefix.
+              ${pkgs.zellij}/bin/zellij action switch-mode normal
               # Use a predictable pager: no user LESS options, q closes only help.
               export LESS= LESSOPEN= LESSCLOSE= LESSKEY= LESSKEYIN=
               exec ${pkgs.less}/bin/less --no-init --prompt='Shortcuts | arrows/PgUp/PgDn scroll | / search | q close' ${shortcutsText}
@@ -356,7 +359,6 @@
               keybinds {
                   shared {
                       bind "F1" {
-                          SwitchToMode "Normal";
                           Run "${shortcutsPager}" {
                               floating true
                               close_on_exit true
