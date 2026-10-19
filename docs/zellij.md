@@ -1,6 +1,6 @@
 # Shared Zellij launchers
 
-Every `l.mkZmux` consumer has a single-row shortcut bar: an **F1 keymaps** chevron first, followed by the original mode-aware Zellij status bar (Ctrl+G/P/T/N/H/S/O/Q). There is no separate help/footer row. F1 uses a fixed fourteen-column segment so the remaining bar keeps its normal responsive hints.
+Every `l.mkZmux` consumer has a single-row shortcut bar: an **F1 keymaps** chevron first, followed by the classic mode-aware Zellij status bar (Ctrl+G lock, Ctrl+P pane, Ctrl+T tab, Ctrl+N resize, Ctrl+H move, Ctrl+S scroll, Ctrl+O session, Ctrl+Q quit). There is no separate help/footer row. F1 uses a fixed fourteen-column segment. Classic mode shows effect labels when they fit and removes the default one-line UI’s trailing ribbon/ellipsis. On narrow terminals Zellij may shorten labels to fit; F1 always opens the full list.
 
 Press **F1** to open the floating keyboard-shortcut list. It lists my-nix overrides and every binding from the packaged Zellij defaults, grouped by input mode. Arrow keys and Page Up/Down scroll; `/` searches; `q` closes help. F1 switches to Normal mode so the pager controls work even when opened from another mode.
 

@@ -399,7 +399,10 @@
                       // One row: F1 first, then the unchanged, mode-aware status bar.
                       pane size=14 borderless=true command="${shortcutsHint}"
                       pane borderless=true {
-                          plugin location="zellij:status-bar"
+                          plugin location="zellij:status-bar" {
+                              // Show effect labels; omit the one-line UI's trailing ribbon/ellipsis.
+                              classic true
+                          }
                       }
                   }
                 }
