@@ -348,7 +348,7 @@
               exec ${pkgs.less}/bin/less --no-init --prompt='Shortcuts | arrows/PgUp/PgDn scroll | / search | q close' ${shortcutsText}
             '';
             shortcutsHint = pkgs.writeShellScript "zellij-shortcuts-hint" ''
-              printf '\033[?25l F1: keyboard shortcuts | Ctrl+Q: quit session + all tabs'
+              printf '\033[?25l\033[1;38;5;124;48;5;245m F1 \033[38;5;245;49m\033[0m'
               exec ${pkgs.coreutils}/bin/sleep infinity
             '';
 
@@ -395,11 +395,12 @@
                       }
                       children
                   }
-                  pane size=1 borderless=true command="${shortcutsHint}" {
-                      // Persistent discoverability even when the status bar is crowded.
-                  }
-                  pane size=1 borderless=true {
-                      plugin location="zellij:status-bar"
+                  pane size=1 split_direction="vertical" {
+                      // One row: F1 first, then the unchanged, mode-aware status bar.
+                      pane size=6 borderless=true command="${shortcutsHint}"
+                      pane borderless=true {
+                          plugin location="zellij:status-bar"
+                      }
                   }
                 }
                 ${l.concatStringsSep "\n" (map (entry: ''
