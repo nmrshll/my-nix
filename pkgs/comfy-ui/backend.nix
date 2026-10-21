@@ -17,16 +17,16 @@ let
     ) pins;
   };
 in (upstream.override { python3 = python; }).overrideAttrs (old: {
-  version = "0.42.1";
+  version = "0.42.3";
   src = fetchFromGitHub {
     owner = "Comfy-Org";
     repo = "ComfyUI";
-    tag = "v0.42.1";
-    hash = "sha256-/thkdznvXdpT2rgsyZ1NoH5jG1ox+pAjJCrj4glurSI=";
+    tag = "v0.42.3";
+    hash = "sha256-QepSnLNO7RSQcOjKkRBzfcxMwGYRDs/NVr2WUp4KD6c=";
   };
   # The upstream dependency dry-run and CPU startup checks remain enabled.
   passthru = old.passthru // {
-    sourceRevision = "63be2f9b82ad0dac88a7ceaa28a9cf3154125a18";
+    sourceRevision = "edb3db00fd88f059e748c8a400391b5eab76266b";
   };
   meta = upstream.meta // { platforms = lib.platforms.darwin; };
 })

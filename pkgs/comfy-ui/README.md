@@ -1,8 +1,8 @@
 # ComfyUI on macOS
 
 `pkgs.own.comfy-ui` installs the official Comfy Desktop 1.1.7 app and a packaged
-ComfyUI 0.42.1 backend. Both were checked against their official latest stable
-GitHub releases on 2026-10-21. Desktop and the ComfyUI instance have independent
+ComfyUI 0.42.3 backend. Both were checked online on 2026-10-21: Desktop is the latest stable
+release and ComfyUI is the newest upstream tag (the release endpoint lags tags). Desktop and the ComfyUI instance have independent
 version numbers. The old ToDesktop ComfyUI DMG has been replaced.
 
 The backend extends nixpkgs-unstable's derivation: neither nix-home's pinned
@@ -40,6 +40,6 @@ nix build --impure --expr 'let f = builtins.getFlake (toString ./.); in f.debug.
 ```
 
 Sources: [Desktop](https://github.com/Comfy-Org/Comfy-Desktop/releases/tag/v1.1.7),
-[ComfyUI](https://github.com/Comfy-Org/ComfyUI/releases/tag/v0.42.1),
+[ComfyUI](https://github.com/Comfy-Org/ComfyUI/releases/tag/v0.42.3),
 [MOSS weights](https://huggingface.co/Comfy-Org/MOSS-Image), and
 [official workflow](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_moss_image_t2i.json).
