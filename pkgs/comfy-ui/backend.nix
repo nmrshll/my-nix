@@ -16,7 +16,7 @@ let
       }
     ) pins;
   };
-in (upstream.override { python3 = python; }).overrideAttrs {
+in (upstream.override { python3 = python; }).overrideAttrs (old: {
   version = "0.42.1";
   src = fetchFromGitHub {
     owner = "Comfy-Org";
@@ -25,5 +25,8 @@ in (upstream.override { python3 = python; }).overrideAttrs {
     hash = "sha256-/thkdznvXdpT2rgsyZ1NoH5jG1ox+pAjJCrj4glurSI=";
   };
   # The upstream dependency dry-run and CPU startup checks remain enabled.
+  passthru = old.passthru // {
+    sourceRevision = "63be2f9b82ad0dac88a7ceaa28a9cf3154125a18";
+  };
   meta = upstream.meta // { platforms = lib.platforms.darwin; };
-}
+})
