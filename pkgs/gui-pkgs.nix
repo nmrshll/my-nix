@@ -1,5 +1,5 @@
 {
-  config.perSystem = { pkgs, l, ... }: {
+  config.perSystem = { pkgs, l, inputs', ... }: {
 
     ownPkgs.antigravity = {}:
       let
@@ -245,26 +245,13 @@
       mkPkg { };
 
     ownPkgs.comfy-ui = {}:
-      let
-        versions."241012ess7yxs0e".sha256 = "0fbiwl0kir80gyiqqm5xrvsdwqj4fjws0k2slcrq2g4xkn7cwv7g";
-        mkPkg = { version ? "241012ess7yxs0e", ... }:
-          if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
-          else
-            let
-              url = "https://dl.todesktop.com/${version}/mac/dmg/arm64";
-              sha256 = versions.${version}.sha256;
-              src = pkgs.fetchurl { inherit url sha256; };
-            in
-            pkgs.lib.darwin.installDmg {
-              inherit version;
-              sha256 = versions.${version}.sha256;
-              inherit url;
-              appname = "ComfyUI";
-              meta = { description = "ComfyUI is a powerful, flexible, and user-friendly interface for Stable Diffusion."; homepage = "https://www.comfy.org/"; };
-              passthru = { inherit versions mkPkg src; };
-            };
-      in
-      mkPkg { };
+      if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null else
+      pkgs.callPackage ./comfy-ui/package.nix {
+        comfyui = pkgs.callPackage ./comfy-ui/backend.nix {
+          upstream = inputs'.nixpkgs-unstable.legacyPackages.comfyui;
+        };
+      };
+    ownPkgs.comfy-ui-moss-image = {}: pkgs.callPackage ./comfy-ui/models.nix { };
 
     # ABANDONED
     # ownPkgs.ito = { pkgs, version ? "0.9.0" }:

@@ -1,5 +1,6 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+  inputs.nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   inputs.fp.url = "github:hercules-ci/flake-parts";
   inputs.rust-overlay = { url = "github:oxalica/rust-overlay"; inputs.nixpkgs.follows = "nixpkgs"; };
   inputs.crane = { url = "github:ipetkov/crane"; };
