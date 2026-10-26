@@ -1,6 +1,10 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
+    ownPkgs.freebuff-desktop = {}:
+      if system != "aarch64-darwin" then null
+      else pkgs.callPackage ./freebuff-desktop/package.nix { };
+
     # nixpkgs' current kilo is marked broken; the legacy kilocode-cli lacks
     # the current CLI/ACP implementation. Use pinned upstream binaries instead.
     ownPkgs.kilo = {}:
