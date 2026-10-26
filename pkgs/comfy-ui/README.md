@@ -33,6 +33,13 @@ The download is about 29.7 GB. `linkFarm` exposes model category directories
 without copying the weights. BF16 avoids CUDA-specific quantized kernels on
 Apple Silicon. Configure `extra_model_paths.yaml` to reference this store path.
 
+`pkgs.own.comfy-ui-klein-4b` pins Comfy-Org's FLUX.2 Klein 4B distilled
+BF16 model, Qwen3-4B encoder, and FLUX.2 VAE at revision
+`533c4cbc3d3b89af1743d9466c434e89810391c0`. It checks each file's SHA-256
+and exposes the same category directories through a link farm. The download is
+about 16.1 GB. Use the distilled four-step workflow with CFG 1; the similarly
+named base model is a different, slower checkpoint.
+
 For a focused build without evaluating unrelated custom packages:
 
 ```sh
@@ -41,5 +48,6 @@ nix build --impure --expr 'let f = builtins.getFlake (toString ./.); in f.debug.
 
 Sources: [Desktop](https://github.com/Comfy-Org/Comfy-Desktop/releases/tag/v1.1.7),
 [ComfyUI](https://github.com/Comfy-Org/ComfyUI/releases/tag/v0.42.3),
+[Klein weights](https://huggingface.co/Comfy-Org/Flux-2-Klein-4B),
 [MOSS weights](https://huggingface.co/Comfy-Org/MOSS-Image), and
 [official workflow](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_moss_image_t2i.json).

@@ -252,6 +252,7 @@
         };
       };
     ownPkgs.comfy-ui-moss-image = {}: pkgs.callPackage ./comfy-ui/models.nix { };
+    ownPkgs.comfy-ui-klein-4b = {}: pkgs.callPackage ./comfy-ui/klein-models.nix { };
 
     # ABANDONED
     # ownPkgs.ito = { pkgs, version ? "0.9.0" }:
