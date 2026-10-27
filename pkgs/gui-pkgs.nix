@@ -251,8 +251,7 @@
           upstream = inputs'.nixpkgs-unstable.legacyPackages.comfyui;
         };
       };
-    ownPkgs.comfy-ui-moss-image = {}: pkgs.callPackage ./comfy-ui/models.nix { };
-    ownPkgs.comfy-ui-klein-4b = {}: pkgs.callPackage ./comfy-ui/klein-models.nix { };
+    ownPkgs.comfy-ui-model-downloader = {}: pkgs.callPackage ./comfy-ui/downloader.nix { };
 
     # ABANDONED
     # ownPkgs.ito = { pkgs, version ? "0.9.0" }:

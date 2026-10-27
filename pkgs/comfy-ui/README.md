@@ -26,19 +26,41 @@ owns the separate manifest and source symlink; it does not symlink Desktop's
 mutable registry. The source and dependencies are immutable; update through Nix
 rather than Desktop's update/repair controls.
 
-`pkgs.own.comfy-ui-moss-image` pins the official Comfy-Org MOSS Image SFT BF16
-diffusion model, Qwen3.5-9B BF16 encoder, and FLUX.2 small VAE at revision
-`ee64003102c8470ee32501cf883419235db81884`, checking each file's SHA-256.
-The download is about 29.7 GB. `linkFarm` exposes model category directories
-without copying the weights. BF16 avoids CUDA-specific quantized kernels on
-Apple Silicon. Configure `extra_model_paths.yaml` to reference this store path.
+`pkgs.own.comfy-ui-model-downloader` provides `comfyui-models` and exposes plain
+metadata through its `models` passthru. The weights are not Nix build inputs.
+`model-manifest.nix` pins official Comfy-Org files with SHA-256 hashes:
 
-`pkgs.own.comfy-ui-klein-4b` pins Comfy-Org's FLUX.2 Klein 4B distilled
-BF16 model, Qwen3-4B encoder, and FLUX.2 VAE at revision
-`533c4cbc3d3b89af1743d9466c434e89810391c0`. It checks each file's SHA-256
-and exposes the same category directories through a link farm. The download is
-about 16.1 GB. Use the distilled four-step workflow with CFG 1; the similarly
-named base model is a different, slower checkpoint.
+- MOSS Image SFT BF16, Qwen3.5-9B BF16 encoder, and FLUX.2 small VAE at revision
+  `ee64003102c8470ee32501cf883419235db81884` (about 29.7 GB).
+- FLUX.2 Klein 4B distilled BF16, Qwen3-4B encoder, and FLUX.2 VAE at revision
+  `533c4cbc3d3b89af1743d9466c434e89810391c0` (about 16.1 GB).
+
+BF16 avoids CUDA-specific quantized kernels on Apple Silicon. Klein uses the
+distilled four-step workflow with CFG 1; the similarly named base model is a
+different, slower checkpoint.
+
+Home Manager writes `~/.config/comfyui/models.json` containing `directory`, a
+`files` array of `{path, url, sha256}`, and optional `search_roots`. Paths are
+relative to model categories, such as `diffusion_models/example.safetensors`.
+The one-off launchd job runs `comfyui-models` after activation has linked this
+manifest. It stores weights in the writable model directory, outside `/nix/store`.
+Run the command manually to retry; no persistent daemon or scheduled polling is
+needed. Downloads resume in `.downloads/`, and only verified files are renamed
+into the model categories. A per-directory lock prevents concurrent writers.
+Different existing files are preserved with a `.before-model-sync-*` suffix;
+already-correct files are skipped. The helper never deletes undeclared models.
+
+`comfyui-models --remember-config OLD_CONFIG --state-dir STATE` records paths
+from the previous HM-generated JSON/YAML before it is replaced. The sync job
+checks these paths and `search_roots` for reusable files, then copies and verifies
+them outside the store so garbage collection remains safe. The manifest only
+declares downloads; no network transfer happens while evaluating or building Nix.
+
+The downloader's regression checks use tiny loopback fixtures, not real weights:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 pkgs/comfy-ui/test_download_models.py
+```
 
 For a focused build without evaluating unrelated custom packages:
 
