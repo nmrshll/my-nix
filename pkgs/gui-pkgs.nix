@@ -1,6 +1,10 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.zed-delta = {}:
+      if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
+      else pkgs.callPackage ./zed-delta/package.nix { };
+
     ownPkgs.openspades = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
       else pkgs.callPackage ./openspades/package.nix { };
