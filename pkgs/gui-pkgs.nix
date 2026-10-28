@@ -1,6 +1,10 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.openspades = {}:
+      if !pkgs.stdenv.hostPlatform.isDarwin then null
+      else pkgs.callPackage ./openspades/package.nix { };
+
     ownPkgs.antigravity = {}:
       let
         versions."1.16.5-6703236727046144".sha256 = "sha256:1nc2fsd4hmlvh1b5vh0ndffy6q7xng9xdb931c0dzkpz190alr0z";
