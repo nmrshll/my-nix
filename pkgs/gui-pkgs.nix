@@ -1,6 +1,14 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.openage = {}:
+      if !pkgs.stdenv.hostPlatform.isUnix then null
+      else pkgs.callPackage ./openage/package.nix { };
+
+    ownPkgs.openclonk = {}:
+      if !pkgs.stdenv.hostPlatform.isDarwin then null
+      else pkgs.callPackage ./openclonk/package.nix { };
+
     ownPkgs.urbanterror = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
       else pkgs.callPackage ./urbanterror/package.nix { };
