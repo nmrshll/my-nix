@@ -1,6 +1,6 @@
 # Delta from Zed
 
-`pkgs.own.zed-delta` packages the official Delta 0.22.0 Apple Silicon macOS app.
+`pkgs.own.zed-delta` packages the official Delta 0.23.0 Apple Silicon macOS app.
 Neither pinned nixpkgs input contains this app: `pkgs.delta` is the unrelated
 Git diff pager. Zed's official `delta-nix` flake currently supports Linux only.
 
@@ -25,6 +25,12 @@ Installation checks verify the app identity, resources, CLI release version,
 and launch command syntax. Upstream's Info.plist still reports 0.1.0, so the
 actual version check uses `zed-delta --version`. Verify the built bundle with
 `codesign --verify --deep --strict /nix/store/…-zed-delta-…/Applications/Delta.app`.
+
+For 0.23.0, this signature check reports an invalid arm64 signature for both
+the freshly extracted upstream ZIP and the Nix output. Both bundled executables
+are byte-for-byte identical to upstream; the package does not re-sign them.
+The CLI version and installation checks pass, but a full GUI launch has not
+been verified.
 
 To update, resolve the public download API:
 `https://delta.dev/api/releases/stable/latest/asset?asset=delta&os=macos&arch=aarch64`,

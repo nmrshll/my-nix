@@ -1,7 +1,8 @@
 { lib, stdenvNoCC, fetchurl, unzip, makeWrapper }:
 let
   versions."0.22.0".hash = "sha256-HKytKO9C07THrCZS9UQLF8K8qnF0aYpLzkP/+7go0j0=";
-  mkPkg = { version ? "0.22.0" }:
+  versions."0.23.0".hash = "sha256-2/ri+IEXATFcMghTRjWbVRHA4zdDvyoxhzA1r+GSu30=";
+  mkPkg = { version ? "0.23.0" }:
     stdenvNoCC.mkDerivation {
       pname = "zed-delta";
       inherit version;
