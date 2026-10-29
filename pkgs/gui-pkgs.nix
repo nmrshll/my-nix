@@ -1,6 +1,14 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.urbanterror = {}:
+      if !pkgs.stdenv.hostPlatform.isDarwin then null
+      else pkgs.callPackage ./urbanterror/package.nix { };
+
+    ownPkgs.warsow = {}:
+      if !pkgs.stdenv.hostPlatform.isDarwin then null
+      else pkgs.callPackage ./warsow/package.nix { };
+
     ownPkgs.zed-delta = {}:
       if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
       else pkgs.callPackage ./zed-delta/package.nix { };
