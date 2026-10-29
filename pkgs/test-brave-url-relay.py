@@ -1,7 +1,7 @@
 """Live macOS URL-event test with an isolated app and fake browser backend.
 
 Run with the built Brave app's Contents/MacOS/Brave Browser executable.
-No real browser profile or default-handler preference is changed.
+No real browser profile or HTTP/HTTPS default-handler preference is changed.
 """
 import json
 import os
@@ -23,7 +23,7 @@ def wait_for(predicate, message):
     raise AssertionError(message)
 
 
-with tempfile.TemporaryDirectory(prefix="brave-relay-", dir="/private/tmp") as directory:
+with tempfile.TemporaryDirectory(prefix="brave-relay-", dir=Path.home() / "Applications") as directory:
     root = Path(directory)
     app = root / "Relay Test.app"
     contents = app / "Contents"
@@ -34,9 +34,13 @@ with tempfile.TemporaryDirectory(prefix="brave-relay-", dir="/private/tmp") as d
     with (contents / "Info.plist").open("wb") as stream:
         plistlib.dump({"CFBundleIdentifier": "io.nixhome.brave-relay-test",
                       "CFBundleName": "Brave Relay Test",
+                      "CFBundleVersion": "1.0",
                       "CFBundleExecutable": "relay",
                       "CFBundlePackageType": "APPL",
-                      "CFBundleURLTypes": [{"CFBundleURLSchemes": ["http", "https"]}]}, stream)
+                      "CFBundleURLTypes": [{"CFBundleTypeRole": "Viewer",
+                                            "CFBundleURLName": "Brave relay test",
+                                            "CFBundleURLSchemes": [
+                          "http", "https", "nix-brave-relay-test"]}]}, stream)
     log = root / "calls.jsonl"
     stop = root / "stop"
     pid_file = root / "relay.pid"
@@ -55,6 +59,7 @@ if len(sys.argv) == 1:
     subprocess.run(["/usr/bin/codesign", "--force", "--deep", "--sign", "-", str(app)], check=True)
     register = "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
     try:
+        subprocess.run([register, "-f", str(app)], check=True)
         subprocess.run(["/usr/bin/open", "-a", str(app)], check=True)
         wait_for(pid_file.exists, "Relay did not start the browser backend")
         for url in ["http://example.com/relay-http", "https://example.org/relay-https"]:
@@ -62,6 +67,15 @@ if len(sys.argv) == 1:
             wait_for(lambda: [url] in [json.loads(line) for line in log.read_text().splitlines()],
                      f"URL event was not forwarded: {url}")
             print(f"Forwarded {url}")
+        # Exercise plain `open URL` too, without changing HTTP/HTTPS defaults.
+        routed_url = "nix-brave-relay-test://external/default-route"
+        subprocess.run(["/usr/bin/open", routed_url], check=True)
+        wait_for(lambda: [routed_url] in [json.loads(line) for line in log.read_text().splitlines()],
+                 "Default URL routing did not reach the relay")
+        print("Forwarded URL through plain open without an explicit app")
+        calls = [json.loads(line) for line in log.read_text().splitlines()]
+        assert calls.count([]) == 1, f"URL delivery caused extra empty browser launches: {calls}"
+        print("URL delivery did not launch an extra empty browser")
         stop.touch()
         relay_pid = int(pid_file.read_text())
 

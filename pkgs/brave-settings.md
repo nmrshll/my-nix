@@ -29,5 +29,15 @@ Brave; a handler-ID check alone cannot establish that the page opens.
 Run `python3 pkgs/test-brave-url-relay.py <built-app>/Contents/MacOS/Brave\ Browser`
 for an isolated live AppKit test. It sends actual HTTP and HTTPS open-URL events
 to a temporary app with a fake browser backend, checks exact argument forwarding
-and exit cleanup, then unregisters the test app. It does not change the default
-browser or read a real browser profile.
+and exit cleanup, then unregisters the test app. It also exercises plain
+`open URL` using a custom test scheme and rejects extra empty backend launches
+during URL forwarding. The temporary app is created under `~/Applications` so
+LaunchServices can select it for that scheme. The test does not change the
+HTTP/HTTPS default browser or read a real browser profile.
+
+The browser setup requires ordinary external links to reuse an existing normal
+Brave window as new tabs, allowing a new window when Brave is stopped or no
+suitable window exists. The isolated test checks URL forwarding and extra
+backend launches; real window counts and tab placement still need a browser
+session test. See nix-home's `docs/findings/default-browser.md` for the
+requirement and follow-up status.
