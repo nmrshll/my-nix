@@ -48,6 +48,8 @@
               touch "$out"
             '';
             wrapBrave = { brave, stateDir, dataDir }:
+            # LaunchServices must see a native executable in the app bundle.
+            # Shell wrappers can run Brave but are ineligible as URL handlers.
             brave.overrideAttrs (old: {
               nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
               postInstall = (old.postInstall or "") + ''
@@ -59,6 +61,20 @@
                   --set BRAVE_SETTINGS_STATE_DIR ${pkgs.lib.escapeShellArg stateDir} \
                   --set BRAVE_SETTINGS_DATA_DIR ${pkgs.lib.escapeShellArg dataDir} \
                   --set BRAVE_SETTINGS_BROWSER "$real"
+              '';
+              # Seal after stripping/fixups and after both the settings and
+              # command-line wrappers have been installed.
+              postFixup = (old.postFixup or "") + ''
+                program="$out/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+                # Home Manager appends a shell wrapper for commandLineArgs.
+                # Keep its flags behind a native URL-event relay. Merely execing
+                # a hidden binary changes executableURL and LS starts a new
+                # instance for each URL instead of addressing the existing one.
+                mv "$program" "$program-launch-wrapped"
+                $CC -Wall -Wextra -Werror -O2 -fobjc-arc -framework AppKit \
+                  ${./brave-url-relay.m} -o "$program"
+                /usr/bin/codesign --force --deep --sign - "$out/Applications/Brave Browser.app"
+                /usr/bin/codesign --verify --deep --strict "$out/Applications/Brave Browser.app"
               '';
             });
           };
