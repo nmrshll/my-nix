@@ -16,6 +16,15 @@ cache.mkdir(parents=True, exist_ok=True)
 resources = app / 'Contents/Resources'
 
 
+def validate_bun_entry():
+    if args[:1] != ['--bun']:
+        return
+    for arg in args[1:]:
+        if arg.endswith('/orchestrator/orchestrator.js') and arg != str(resources / 'orchestrator/orchestrator.js'):
+            raise OSError('Refusing an unpatched backend from another Freebuff app. '
+                          'Quit that app and launch freebuff-desktop instead.')
+
+
 def prepare():
     source = resources / 'orchestrator/orchestrator.js'
     digest = hashlib.sha256(source.read_bytes() + str(output).encode()).hexdigest()
@@ -38,6 +47,7 @@ def prepare():
 
 
 try:
+    validate_bun_entry()
     with (cache / 'prepare.lock').open('w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if not app.exists():

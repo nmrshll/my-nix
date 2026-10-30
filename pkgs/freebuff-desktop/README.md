@@ -24,6 +24,9 @@ The nix-home activation seeds the app and sets `FREEBUFF_BUN_PATH` in launchd's
 user environment. Home Manager also sets it for shells. This makes Finder
 launches and upstream updater restarts use the same backend bridge. Quit an
 already-running Freebuff instance after rebuilding, then launch it again.
+Activation registers the writable app with Launch Services. The bridge refuses
+orchestrator entry paths from other app bundles, including old store installs,
+so those launches cannot silently run an unpatched backend.
 
 ## Python sandbox integration
 
@@ -70,8 +73,16 @@ and Nix-store contents.
 
 The writable-copy launcher has also been checked in a temporary directory for
 signature preservation, preservation of a newer installed version, backend
-cache reuse, and explicit failure on incompatible backend changes. A live
-upstream download/install/restart cycle still requires GUI verification.
+cache reuse, and explicit failure on incompatible backend changes.
+
+A live update from 0.0.192 to 0.0.195 succeeded on 2026-10-30, including app
+replacement, signature verification, restart and a subsequent check reporting
+0.0.195 as current. The new release changed its Python probe; the patch now
+supports both reviewed forms. Both releases pass the sandbox check. To test an
+updated backend, pass its patched cached `orchestrator.js` as the sandbox
+check's second argument. A macOS Python installer prompt was also reported
+during testing; logs did not establish its caller. The stale-app guard closes
+the observed route that previously allowed an old unpatched backend to run.
 
 To update the bootstrap release, resolve
 `https://freebuff.com/api/desktop/download/mac-arm64`, update the version and

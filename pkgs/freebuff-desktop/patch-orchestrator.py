@@ -37,8 +37,24 @@ replace_once(
 old_probe = '''  "for c in python3 python; do",
   '  if command -v "$c" >/dev/null 2>&1 && "$c" --version >/dev/null 2>&1; then echo python; break; fi',
   "done",'''
+guarded_probe = '''  "for c in python3 python; do",
+  '  if command -v "$c" >/dev/null 2>&1; then',
+  '    p=$(command -v "$c")',
+  '    if [ "$p" = "/usr/bin/$c" ] && [ "$(uname -s)" = "Darwin" ]; then',
+  "      d=$(xcode-select -p 2>/dev/null) || continue",
+  '      [ -n "$d" ] && [ -x "$d/usr/bin/$c" ] || continue',
+  '      p="$d/usr/bin/$c"',
+  "    fi",
+  '    if "$p" --version >/dev/null 2>&1; then echo python; break; fi',
+  "  fi",
+  "done",'''
+# 0.0.195 adds upstream CLT-shim avoidance. Both reviewed probe forms still
+# need the explicit Nix interpreter and its sandbox closure.
+known_probes = [anchor for anchor in (old_probe, guarded_probe) if anchor in source]
+if len(known_probes) != 1:
+    raise SystemExit('Freebuff backend changed; review Python probe patch anchor')
 probe = f'{python} --version >/dev/null 2>&1 && echo python'
-replace_once(old_probe, '  ' + json.dumps(probe) + ',')
+replace_once(known_probes[0], '  ' + json.dumps(probe) + ',')
 # Bun accepts ESM imports after statements. No caller-supplied variable controls
 # these grants, and Python needs no PYTHONHOME/PYTHONPATH or credential passthrough.
 source = (

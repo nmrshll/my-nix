@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-const [output] = process.argv.slice(2);
-const source = fs.readFileSync(`${output}/libexec/orchestrator/orchestrator.js`, 'utf8');
+const [output, backendFile = `${output}/libexec/orchestrator/orchestrator.js`] = process.argv.slice(2);
+const source = fs.readFileSync(backendFile, 'utf8');
 function section(start, end) {
   const at = source.indexOf(start);
   assert(at >= 0, `Missing ${start}`);
@@ -19,8 +19,12 @@ function section(start, end) {
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'freebuff-nix-check-'));
 try {
   const modulePath = path.join(temp, 'backend-parts.mjs');
+  // Bundling renumbers Node imports between releases; use the actual aliases
+  // referenced by the profile helpers rather than assuming a fixed release.
+  const fsAlias = section('function canonicalRoot(target)', 'function canonicalFile(').match(/return (\w+)\.realpathSync/)[1];
+  const pathAlias = section('function canonicalFile(', 'function traversableAncestors(').match(/return (\w+)\.join/)[1];
   fs.writeFileSync(modulePath, [
-    "import fs16 from 'node:fs'; import path27 from 'node:path';",
+    `import ${fsAlias} from 'node:fs'; import ${pathAlias} from 'node:path';`,
     source.slice(0, source.indexOf('process.env.PATH = nixPythonBin')),
     section('var SPONSORED_LOCAL_ENV_ALLOWLIST', 'var SPONSORED_WINDOWS_ENV_ALLOWLIST'),
     section('// ../sdk/src/tools/sponsored-toolchain.ts', '// src/server/repo/project-db.ts'),
