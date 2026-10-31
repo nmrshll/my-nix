@@ -1,6 +1,10 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.dbdelve = {}:
+      if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
+      else pkgs.callPackage ./dbdelve/package.nix { };
+
     ownPkgs.openage = {}:
       if !pkgs.stdenv.hostPlatform.isUnix then null
       else pkgs.callPackage ./openage/package.nix { };
