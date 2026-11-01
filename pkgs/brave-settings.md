@@ -16,6 +16,14 @@ the URLs to the same launcher as command-line arguments. Chromium forwards
 those arguments to its existing browser session. The relay exits when the main
 browser child exits; the original settings lifecycle remains unchanged.
 
+Dock Quit is delivered to this native relay too. Its termination delegate finds
+the native browser in the same bundle beneath the waiting launcher wrappers and
+asks that process to quit normally with `NSRunningApplication.terminate`. It
+targets the process rather than the shared bundle ID to avoid sending Quit back
+to itself. The relay stays alive if the browser cancels Quit; after a successful
+Quit, the settings wrapper completes its post-exit work before the relay stops.
+Bundle comparisons resolve symlinks, including macOS's `/var` and `/private/var`.
+
 Home Manager adds its flags after `postInstall`, so `postFixup` installs the
 relay after that wrapping, then seals the whole bundle with a local ad-hoc
 signature. Framework symlinks are preserved. This does not restore the vendor's
@@ -34,6 +42,19 @@ and exit cleanup, then unregisters the test app. It also exercises plain
 during URL forwarding. The temporary app is created under `~/Applications` so
 LaunchServices can select it for that scheme. The test does not change the
 HTTP/HTTPS default browser or read a real browser profile.
+
+Run `python3 pkgs/test-brave-dock-quit.py <built-app>/Contents/MacOS/Brave\ Browser`
+for the isolated live Quit regression test. It compiles `test-brave-browser.m`
+as a native fake browser behind a waiting shell wrapper, sends the same normal
+Quit request used by the Dock, and checks browser exit, wrapper cleanup, and
+relay exit. It also checks browser-initiated Quit and cancellation followed by a
+second Quit request. This test needs Xcode command-line tools and a logged-in
+macOS GUI session; it never opens the real browser or accesses its profile.
+
+The configured `mac2024` Brave package was rebuilt with the local `my-nix`
+override and passed both live relay tests and strict bundle signature checks.
+All seven settings-launcher tests passed. The Quit test also reproduced the
+missing-forwarding failure against the previously installed launcher.
 
 The browser setup requires ordinary external links to reuse an existing normal
 Brave window as new tabs, allowing a new window when Brave is stopped or no

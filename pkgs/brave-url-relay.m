@@ -1,4 +1,5 @@
 #import <AppKit/AppKit.h>
+#import <libproc.h>
 
 // This is the bundle's actual executable. Keeping the settings/flags wrappers
 // behind it lets LaunchServices find a running handler at CFBundleExecutable.
@@ -9,6 +10,32 @@
 @end
 
 @implementation BraveRelay
+- (BOOL)isBrowserProcess:(pid_t)pid {
+    // The settings launcher waits for Chromium through one or more shell
+    // wrappers. Target its native descendant, never the relay's bundle ID:
+    // both processes belong to the same app bundle.
+    while (pid > 1) {
+        if (pid == self.browser.processIdentifier) return YES;
+        struct proc_bsdinfo info;
+        if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, sizeof(info)) != sizeof(info)) return NO;
+        if (info.pbi_ppid == (unsigned int)pid) return NO;
+        pid = (pid_t)info.pbi_ppid;
+    }
+    return NO;
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
+    (void)application;
+    for (NSRunningApplication *candidate in NSWorkspace.sharedWorkspace.runningApplications) {
+        if ([candidate.bundleURL.URLByResolvingSymlinksInPath
+                isEqual:NSBundle.mainBundle.bundleURL.URLByResolvingSymlinksInPath] &&
+            [self isBrowserProcess:candidate.processIdentifier]) [candidate terminate];
+    }
+    // Keep forwarding events if Chromium cancels Quit (e.g. a download prompt).
+    // Its normal exit ends the settings wrapper, whose handler stops our loop.
+    return NSTerminateCancel;
+}
+
 - (NSTask *)launch:(NSArray<NSString *> *)arguments {
     NSTask *task = [[NSTask alloc] init];
     task.executableURL = [NSURL fileURLWithPath:self.launcher];
