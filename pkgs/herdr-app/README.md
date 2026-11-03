@@ -18,10 +18,12 @@ Verify the installed signature with `codesign --verify --deep --strict` outside
 the build sandbox, which cannot access macOS signature verification services.
 
 Herdr requires the separate `herdr-core` runtime (at least 0.1.11 for this
-release). Upstream's app offers to install a missing core. This package installs
-the desktop app only; it does not run upstream's shell installer during a build.
+release). nix-home installs `pkgs.own.herdr-core` 0.1.17 alongside this app.
+The app explicitly searches `~/.nix-profile/bin` for the runtime. Neither package
+runs upstream's shell installer during a build.
 
 Validation on 2026-11-03: built through the my-nix collector; install checks,
 the installed launcher's `--version`/`--help`, and external
 `codesign --verify --deep --strict` all passed. No interactive GUI session was
-started and no core runtime was installed.
+started. The subsequent core integration is validated in
+[`../herdr-core/README.md`](../herdr-core/README.md).

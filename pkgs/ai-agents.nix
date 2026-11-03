@@ -1,6 +1,10 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
+    ownPkgs.herdr-core = {}:
+      if system != "aarch64-darwin" then null
+      else pkgs.callPackage ./herdr-core/package.nix { };
+
     ownPkgs.freebuff-desktop = {}:
       if system != "aarch64-darwin" then null
       else pkgs.callPackage ./freebuff-desktop/package.nix { };
