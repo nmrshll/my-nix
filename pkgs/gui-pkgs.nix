@@ -1,6 +1,10 @@
 {
   config.perSystem = { pkgs, l, inputs', ... }: {
 
+    ownPkgs.herdr-app = {}:
+      if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
+      else pkgs.callPackage ./herdr-app/package.nix { };
+
     ownPkgs.dbdelve = {}:
       if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
       else pkgs.callPackage ./dbdelve/package.nix { };
