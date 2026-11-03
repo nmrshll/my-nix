@@ -5,6 +5,9 @@
       if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
       else pkgs.callPackage ./herdr-app/package.nix { };
 
+    ownPkgs.herdr-paddock = {}:
+      pkgs.callPackage ./herdr-paddock/package.nix { };
+
     ownPkgs.dbdelve = {}:
       if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
       else pkgs.callPackage ./dbdelve/package.nix { };
