@@ -24,13 +24,18 @@
     return NO;
 }
 
-- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
-    (void)application;
+- (NSRunningApplication *)nativeBrowser {
     for (NSRunningApplication *candidate in NSWorkspace.sharedWorkspace.runningApplications) {
         if ([candidate.bundleURL.URLByResolvingSymlinksInPath
                 isEqual:NSBundle.mainBundle.bundleURL.URLByResolvingSymlinksInPath] &&
-            [self isBrowserProcess:candidate.processIdentifier]) [candidate terminate];
+            [self isBrowserProcess:candidate.processIdentifier]) return candidate;
     }
+    return nil;
+}
+
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)application {
+    (void)application;
+    [[self nativeBrowser] terminate];
     // Keep forwarding events if Chromium cancels Quit (e.g. a download prompt).
     // Its normal exit ends the settings wrapper, whose handler stops our loop.
     return NSTerminateCancel;
@@ -63,11 +68,35 @@
     }
 }
 
+- (void)reopenBrowserWithRetries:(NSUInteger)retries {
+    NSRunningApplication *browser = [self nativeBrowser];
+    if (!browser) {
+        // A Dock click can arrive while the settings hook is still starting
+        // Chromium. Wait for that child instead of launching another one.
+        if (retries && self.browser.running) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC),
+                dispatch_get_main_queue(), ^{ [self reopenBrowserWithRetries:retries - 1]; });
+        }
+        return;
+    }
+    [browser activateWithOptions:NSApplicationActivateAllWindows];
+    // Target Chromium's PID, not our shared bundle ID. Its native reopen
+    // handler restores existing windows and creates one only when needed.
+    NSAppleEventDescriptor *event = [NSAppleEventDescriptor
+        appleEventWithEventClass:'aevt' eventID:'rapp'
+        targetDescriptor:[NSAppleEventDescriptor descriptorWithProcessIdentifier:browser.processIdentifier]
+        returnID:kAutoGenerateReturnID transactionID:kAnyTransactionID];
+    NSError *error = nil;
+    [event sendEventWithOptions:NSAppleEventSendNoReply timeout:1 error:&error];
+    if (error) fprintf(stderr, "Brave reopen: %s\n", error.localizedDescription.UTF8String);
+}
+
 - (BOOL)applicationShouldHandleReopen:(NSApplication *)application hasVisibleWindows:(BOOL)visible {
     (void)application;
     (void)visible;
-    // A no-argument Chromium invocation raises the existing browser session.
-    [self application:NSApp openURLs:@[]];
+    // The relay has no windows; `visible` says nothing about Chromium's windows.
+    // A fresh no-argument invocation can create a new window in that session.
+    [self reopenBrowserWithRetries:50];
     return NO;
 }
 @end
