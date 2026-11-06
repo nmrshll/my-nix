@@ -82,12 +82,38 @@ with builtins; {
 
     ownPkgs.pi-coding-agent = {}:
       let
+        # The pinned nixpkgs inputs in nix-home lag this release.
+        versions."1.5.0".sourceHash = "sha256-eH3RuypmXeayuZ9lEag6KW3m2LSM4bDc4ogyHxjZMNI=";
+        versions."1.5.0".bundles = {
+          aarch64-darwin = {
+            target = "darwin-arm64";
+            hash = "sha256-qb8NgtWNKn0zf0rkFxtfyev/5CUJUnqDE2TEtlrfLN8=";
+          };
+          x86_64-darwin = {
+            target = "darwin-x64";
+            hash = "sha256-9BsmzZoXVKviWeBaQh+zOwCTZ3nLB4PIk6Y4nRvS7g0=";
+          };
+        };
         versions."0.70.2" = { sha256 = "qqmJloTp3mWuZBGgpwoyoFyXx6QD8xhJEwCZb7xFabM="; npmDepsHash = "sha256-ImDvTC0Nm+IGYJuqjwUUfnOtA65uJvjlpP4h2Xt/2vE="; };
         versions."0.64.0" = { sha256 = "knCfmoTjq5RADkGRcX7AAxTBhW+2GL4pDtgvMH8pMoY="; npmDepsHash = "sha256-dzBmtAhm0X4TsKW9nwKVyhvYlMLphzNtKkDvubWQFPk="; };
         versions."0.58.3" = { sha256 = "3GrE60n+EY5G50iRrbH7R74e+LQIy1M9+huZTp0ZTns="; npmDepsHash = "sha256-EC5fXZTtBTRkYXLg5p4xWE/ghi2iw30XwnSqJs/PT8I="; };
-        mkPkg = { version ? (l.latest versions), ... }:
+        defaultVersion = l.latest (lib.filterAttrs (_: v: !(v ? bundles) || v.bundles ? ${system}) versions);
+        mkPkg = { version ? defaultVersion, ... }:
           let
             vData = versions.${version};
+            package = if vData ? bundles then
+              pkgs.callPackage ./pi-coding-agent/package.nix {
+                inherit version;
+                inherit (vData) sourceHash;
+                bundle = vData.bundles.${system} or (throw "Unsupported Pi ${version} system: ${system}");
+              }
+            else mkLegacy version vData;
+          in
+          package.overrideAttrs (old: {
+            passthru = (old.passthru or { }) // { inherit versions mkPkg; };
+          });
+        mkLegacy = version: vData:
+          let
             src = pkgs.fetchFromGitHub {
               owner = "badlogic";
               repo = "pi-mono";
@@ -156,7 +182,7 @@ with builtins; {
             versionCheckProgramArg = "--version";
 
             # passthru.updateScript = nix-update-script { };
-            passthru = { inherit versions mkPkg src version; };
+            passthru = { inherit src version; };
 
             meta = {
               description = "Coding agent CLI with read, bash, edit, write tools and session management";
