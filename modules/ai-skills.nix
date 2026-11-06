@@ -38,6 +38,7 @@ let
           let
             flakeHash = builtins.hashFile "sha256" (self.outPath + "/flake.nix");
             python = pkgs.python3.withPackages (ps: [ ps.pyyaml ps.tomlkit ]);
+            skillSources = lib.escapeShellArgs (map (source: "${source}") (builtins.attrValues cfg.skills));
             installer = pkgs.writeShellScript "install-ai-skills" ''
               set -euo pipefail
               export PATH=${lib.makeBinPath [ pkgs.git pkgs.coreutils ]}:$PATH
@@ -53,10 +54,14 @@ let
                 exit 0
               fi
               mkdir -p -- "$skills_dir"
+              duplicates=$(${python}/bin/python3 ${./sync-codex-skills.py} --identical-sources ${skillSources})
 
               install_skill() (
                 dest="$skills_dir/$1"
                 if [ -e "$dest" ] || [ -L "$dest" ]; then
+                  exit 0
+                fi
+                if [[ $'\n'"$duplicates"$'\n' == *$'\n'"$2"$'\n'* ]]; then
                   exit 0
                 fi
                 staging=$(mktemp -d -- "$skills_dir/.$1.XXXXXX")

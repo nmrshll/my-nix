@@ -1,4 +1,4 @@
-"""Hide global Codex skills shadowed by skills in this checkout."""
+"""Compare installed skills and hide global Codex skills shadowed by a checkout."""
 
 import fcntl
 import os
@@ -56,6 +56,27 @@ def codex_home_path():
     return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex").absolute()
 
 
+def global_skills():
+    codex_skills = codex_home_path() / "skills"
+    yield from skills(Path.home() / ".agents" / "skills")
+    yield from skills(codex_skills, include_system=True)
+    yield from skills(Path("/etc/codex/skills"))
+
+
+def print_identical_sources(sources):
+    if not sources:
+        return
+    global_contents = set()
+    for _, path in global_skills():
+        try:
+            global_contents.add(path.read_bytes())
+        except OSError:
+            continue
+    for source in sources:
+        if (Path(source) / "SKILL.md").read_bytes() in global_contents:
+            print(source)
+
+
 def shadowed_paths(repo):
     local = {}
     for name, path in skills(repo / ".agents" / "skills"):
@@ -63,15 +84,12 @@ def shadowed_paths(repo):
     if not local:
         return []
 
-    user_dir = Path.home()
-    codex_dir = codex_home_path()
     paths = set()
-    for root in (user_dir / ".agents" / "skills", codex_dir / "skills", Path("/etc/codex/skills")):
-        for name, path in skills(root, include_system=root == codex_dir / "skills"):
-            if name in local:
-                real_path = path.resolve()
-                if real_path not in local[name]:
-                    paths.add(str(real_path))
+    for name, path in global_skills():
+        if name in local:
+            real_path = path.resolve()
+            if real_path not in local[name]:
+                paths.add(str(real_path))
     return sorted(paths)
 
 
@@ -186,9 +204,12 @@ def launch_codex(repo, args):
 
 if __name__ == "__main__":
     try:
-        repo = Path(sys.argv[1])
-        sync(repo)
-        if sys.argv[2:3] == ["--codex"]:
-            launch_codex(repo, sys.argv[3:])
+        if sys.argv[1] == "--identical-sources":
+            print_identical_sources(sys.argv[2:])
+        else:
+            repo = Path(sys.argv[1])
+            sync(repo)
+            if sys.argv[2:3] == ["--codex"]:
+                launch_codex(repo, sys.argv[3:])
     except (OSError, ValueError, TypeError, tomlkit.exceptions.TOMLKitError) as error:
         sys.exit(f"ai-skills: could not sync Codex skills: {error}")

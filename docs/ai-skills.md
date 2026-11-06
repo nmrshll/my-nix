@@ -15,8 +15,11 @@ distinct name for each skill contributed by a module.
 
 Enter the default dev shell from the consumer's Git worktree, with the
 consumer's `flake.nix` at the worktree root. The hook copies missing
-directories into `.agents/skills/` in that worktree. Each copy is writable
-and can be tracked as part of the project. Existing entries are preserved,
+directories into `.agents/skills/` in that worktree. If a global skill has
+a byte-for-byte identical `SKILL.md`, the hook skips the entire skill
+directory and the agent can use the global copy. The comparison uses
+`SKILL.md` only. Each installed copy is writable and can be tracked as part
+of the project. Existing entries are preserved,
 including local edits and symlinks. To refresh a copy, move it aside and
 re-enter the shell. To turn off the hook, set `aiSkills.enable = false`.
 
