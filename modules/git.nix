@@ -1,6 +1,12 @@
 # thisFlake:
 with builtins; let
   flakeModules.git = { ... }: {
+    imports = [ (import ./ai-skills.nix).flake.flakeModules.ai-skills ];
+    aiSkills.skills = {
+      changelog = ../skills/changelog;
+      commit-messages = ../skills/commit-messages;
+    };
+
     perSystem = { pkgs, bash, ... }:
       with builtins; let
         # l = lib // builtins;

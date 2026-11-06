@@ -1,5 +1,11 @@
 with builtins; let
   flakeModules.solana = part@{ l, ... }: {
+    imports = [ (import ./ai-skills.nix).flake.flakeModules.ai-skills ];
+    aiSkills.skills = {
+      anchor-test-surfpool = ../skills/anchor-test-surfpool;
+      litesvm-test-setup = ../skills/litesvm-test-setup;
+    };
+
     perSystem = { pkgs, lib, ... }:
       let
         crane = part.config.flakeInputsOf.my-nix.crane;

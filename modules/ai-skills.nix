@@ -13,6 +13,7 @@ let
         cfg.skills;
     in
     {
+      key = builtins.unsafeDiscardStringContext "${toString ./ai-skills.nix}#ai-skills";
       imports = [ (import ./devshell.nix).flake.flakeModules.devShell ];
 
       options.aiSkills = {
@@ -31,7 +32,8 @@ let
         };
       };
 
-      config = lib.mkIf (cfg.enable && cfg.skills != { }) {
+      config = {
+        aiSkills.skills.feature-spec = ../skills/feature-spec;
         perSystem = { pkgs, ... }:
           let
             flakeHash = builtins.hashFile "sha256" (self.outPath + "/flake.nix");
@@ -66,7 +68,7 @@ let
               ${lib.concatStringsSep "\n" copyCommands}
             '';
           in
-          {
+          lib.mkIf (cfg.enable && cfg.skills != { }) {
             myDevShell.shellHooks.ai-skills = ''
               ${installer} || echo "ai-skills: could not install skills" >&2
             '';
