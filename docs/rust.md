@@ -1,0 +1,20 @@
+# Rust development shells
+
+Projects that import the Rust flake module get Kache in their development
+shell. Kache shares compiler artifacts across worktrees through
+`~/.cache/kache`, using its automatic storage budget. Keep each worktree's
+Cargo `target/` directory separate. Kache can share disk blocks when the store
+and target directories are on the same filesystem and it supports cloning.
+Set `KACHE_CACHE_DIR` before entering the shell to use another volume.
+
+The Cargo shim routes eligible local commands to Blaze on Apple silicon
+macOS. Linux and Intel Macs use Cargo with Kache. Blaze
+uses its own Rust toolchain and may need to provision it on first use. It
+keeps a separate cache for the workspace code it compiles. Kache still
+caches compatible compiler invocations such as dependency builds. Release
+builds and CI use Cargo. Crane uses the project's selected Rust toolchain.
+
+Use `KACHE_BLAZE=0 cargo build` to build with Cargo while retaining Kache.
+Use `kache doctor` to inspect the setup and `kache stats` to inspect cache
+activity. Kache's budget applies to its artifact store. Large worktrees can
+still use additional disk space for active targets and Blaze's cache.

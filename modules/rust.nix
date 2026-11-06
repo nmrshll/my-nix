@@ -1,6 +1,7 @@
 # thisFlake:
 with builtins; let
   flakeModules.rust = part@{ self, ... }: {
+    imports = [ ../pkgs/rust-dev-tools.nix ];
     perSystem = { pkgs, config, l, lib, bash, ... }:
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { /* inherit (pkgs); */ });
@@ -12,6 +13,8 @@ with builtins; let
         rustToolchain = config.rust.toolchain or defaultRust;
         craneLib = (part.config.flakeInputsOf.my-nix.crane.mkLib pkgs).overrideToolchain (p: rustToolchain);
 
+        inherit (pkgs.own) kache blaze;
+
         buildInputs = config.rust.buildInputs ++ [
           rustToolchain
         ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
@@ -20,7 +23,8 @@ with builtins; let
         ];
         devInputs = with pkgs; [
           cargo-nextest
-        ];
+          kache
+        ] ++ lib.optional (blaze != null) blaze;
 
         src = craneLib.cleanCargoSource self.outPath;
         relPath = p: (/. + builtins.unsafeDiscardStringContext "${self.outPath + "${p}"}");
@@ -156,6 +160,9 @@ with builtins; let
 
         env = {
           RUST_BACKTRACE = "full";
+          RUSTC_WRAPPER = "${kache}/bin/kache";
+          KACHE_REAL_CARGO = "${rustToolchain}/bin/cargo";
+          KACHE_BLAZE = blaze != null;
         };
 
       in
@@ -195,6 +202,10 @@ with builtins; let
           # (e.g. `myDevShell.env.RUST_BACKTRACE = 1`) wins, since mkDefault
           # loses to a plain definition instead of conflicting with it.
           myDevShell.env = lib.mapAttrs (_: lib.mkDefault) env;
+          myDevShell.shellHooks.kache = ''
+            export KACHE_CACHE_DIR="''${KACHE_CACHE_DIR:-$HOME/.cache/kache}"
+            export PATH="${kache}/shims:$PATH"
+          '';
           # myDevShell.shellHooks.de = ''
           #   comm -13 <(echo "$nativeBuildInputs" | tr ' ' '\n' | sort) <(echo "$PATH" | tr ':' '\n' | sort) | grep "/nix/store"
           # '';

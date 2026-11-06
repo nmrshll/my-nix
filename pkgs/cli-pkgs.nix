@@ -1,5 +1,5 @@
 with builtins; {
-  imports = [ ./brave-settings.nix ];
+  imports = [ ./brave-settings.nix ./rust-dev-tools.nix ];
   config.perSystem = { pkgs, l, system, ... }: {
 
     ownPkgs.atlassian-cli = {}:
