@@ -1,6 +1,8 @@
 with builtins; let
 
   flakeModules.devShell = { ... }: {
+    # The skills module also imports this. Deduplicate when consumers use both.
+    key = builtins.unsafeDiscardStringContext (toString ./devshell.nix);
     perSystem = { lib, pkgs, config, ... }: {
       options = {
         myDevShell = {
