@@ -20,6 +20,23 @@ and can be tracked as part of the project. Existing entries are preserved,
 including local edits and symlinks. To refresh a copy, move it aside and
 re-enter the shell. To turn off the hook, set `aiSkills.enable = false`.
 
+After copying, the hook reads the frontmatter names of skills under the
+worktree root's `.agents/skills/`. It adds path-specific disable rules to
+`.codex/config.toml` for matching skills in `~/.agents/skills/`, Codex's
+user and bundled skill directories, and `/etc/codex/skills/`. The
+generated paths are machine-specific,
+so keep those entries out of shared commits. Existing settings and manually
+written rules stay in the file. The hook replaces only its own rules, including
+removing stale rules when a local skill is removed or renamed.
+
+Run `sync-ai-skills` from the dev shell after editing skill metadata or when
+direnv reuses a cached environment. Project config requires a trusted
+checkout. Some Codex clients read the project config but apply skill
+disable rules only when passed at launch. In that case, start the CLI
+with `codex-local-skills` from the dev shell. It syncs the rules and passes
+them to that Codex process. An already running desktop client uses its own
+configuration.
+
 The modules below register skills through the same option. A module that
 registers skills also imports `ai-skills`, which contributes `feature-spec`.
 

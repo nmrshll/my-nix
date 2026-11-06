@@ -37,9 +37,10 @@ let
         perSystem = { pkgs, ... }:
           let
             flakeHash = builtins.hashFile "sha256" (self.outPath + "/flake.nix");
+            python = pkgs.python3.withPackages (ps: [ ps.pyyaml ps.tomlkit ]);
             installer = pkgs.writeShellScript "install-ai-skills" ''
               set -euo pipefail
-              export PATH=${lib.makeBinPath [ pkgs.git pkgs.coreutils ]}
+              export PATH=${lib.makeBinPath [ pkgs.git pkgs.coreutils ]}:$PATH
               repo=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
               # nix develop can also be called from another checkout.
               [ -f "$repo/flake.nix" ] || exit 0
@@ -66,12 +67,17 @@ let
               )
 
               ${lib.concatStringsSep "\n" copyCommands}
+              exec ${python}/bin/python3 ${./sync-codex-skills.py} "$repo" "$@"
             '';
           in
-          lib.mkIf (cfg.enable && cfg.skills != { }) {
+          lib.mkIf cfg.enable {
             myDevShell.shellHooks.ai-skills = ''
-              ${installer} || echo "ai-skills: could not install skills" >&2
+              ${installer} || echo "ai-skills: could not sync skills" >&2
             '';
+            myDevShell.scripts = {
+              sync-ai-skills = "exec ${installer}";
+              codex-local-skills = ''exec ${installer} --codex "$@"'';
+            };
           };
       };
     };
