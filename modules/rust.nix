@@ -14,6 +14,8 @@ with builtins; let
         craneLib = (part.config.flakeInputsOf.my-nix.crane.mkLib pkgs).overrideToolchain (p: rustToolchain);
 
         inherit (pkgs.own) kache blaze;
+        useKache = config.rust.kache.enable;
+        useBlaze = config.rust.blaze.enable && blaze != null;
 
         buildInputs = config.rust.buildInputs ++ [
           rustToolchain
@@ -21,10 +23,9 @@ with builtins; let
           # pkgs.apple-sdk_26
           # pkgs.libiconv
         ];
-        devInputs = with pkgs; [
-          cargo-nextest
-          kache
-        ] ++ lib.optional (blaze != null) blaze;
+        devInputs = [ pkgs.cargo-nextest ]
+          ++ lib.optional useKache kache
+          ++ lib.optional useBlaze blaze;
 
         src = craneLib.cleanCargoSource self.outPath;
         relPath = p: (/. + builtins.unsafeDiscardStringContext "${self.outPath + "${p}"}");
@@ -160,9 +161,10 @@ with builtins; let
 
         env = {
           RUST_BACKTRACE = "full";
+        } // lib.optionalAttrs useKache {
           RUSTC_WRAPPER = "${kache}/bin/kache";
           KACHE_REAL_CARGO = "${rustToolchain}/bin/cargo";
-          KACHE_BLAZE = blaze != null;
+          KACHE_BLAZE = useBlaze;
         };
 
       in
@@ -171,6 +173,10 @@ with builtins; let
         options.rust.targets = l.mkOption { type = l.types.listOf l.types.str; default = [ ]; };
         options.rust.extensions = l.mkOption { type = l.types.listOf l.types.str; default = [ ]; };
         options.rust.toolchain = l.mkOption { type = l.types.package; default = defaultRust; };
+        options.rust.blaze.enable = lib.mkEnableOption "Blaze in the Rust dev shell on Apple silicon macOS";
+        options.rust.kache.enable = lib.mkEnableOption "Kache compiler caching in the Rust dev shell" // {
+          default = true;
+        };
         options.rust.buildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.nativeBuildInputs = l.mkOption { type = l.types.listOf l.types.package; default = [ ]; };
         options.rust.buildEnv = l.mkOption { type = l.types.attrsOf (lib.types.oneOf [ lib.types.str lib.types.int lib.types.bool ]); default = { }; };
@@ -202,10 +208,12 @@ with builtins; let
           # (e.g. `myDevShell.env.RUST_BACKTRACE = 1`) wins, since mkDefault
           # loses to a plain definition instead of conflicting with it.
           myDevShell.env = lib.mapAttrs (_: lib.mkDefault) env;
-          myDevShell.shellHooks.kache = ''
-            export KACHE_CACHE_DIR="''${KACHE_CACHE_DIR:-$HOME/.cache/kache}"
-            export PATH="${kache}/shims:$PATH"
-          '';
+          myDevShell.shellHooks = lib.optionalAttrs useKache {
+            kache = ''
+              export KACHE_CACHE_DIR="''${KACHE_CACHE_DIR:-$HOME/.cache/kache}"
+              export PATH="${kache}/shims:$PATH"
+            '';
+          };
           # myDevShell.shellHooks.de = ''
           #   comm -13 <(echo "$nativeBuildInputs" | tr ' ' '\n' | sort) <(echo "$PATH" | tr ':' '\n' | sort) | grep "/nix/store"
           # '';
