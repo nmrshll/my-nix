@@ -9,7 +9,7 @@ let
           if builtins.match "[a-z0-9][a-z0-9_-]*" name == null then
             throw "aiSkills.skills: invalid skill directory name ${builtins.toJSON name}"
           else
-            "install_skill ${lib.escapeShellArg name} ${lib.escapeShellArg (toString source)}")
+            "install_skill ${lib.escapeShellArg name} ${lib.escapeShellArg "${source}"}")
         cfg.skills;
     in
     {
