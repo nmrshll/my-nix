@@ -2,6 +2,9 @@ with builtins; {
   imports = [ ./brave-settings.nix ./rust-dev-tools.nix ];
   config.perSystem = { pkgs, l, system, ... }: {
 
+    # Browser management CLI is not packaged by the pinned nixpkgs.
+    ownPkgs.puppeteer-browsers = {}: pkgs.callPackage ./puppeteer-browsers/package.nix { nodejs = pkgs.nodejs_24; };
+
     ownPkgs.atlassian-cli = {}:
       let
         versions."1.2.5-stable".sha256 = "sha256:1xij39cv16af7cs5pwyg3fb56kdmf2kvvrg0hizs4m0cly3pv00a";
