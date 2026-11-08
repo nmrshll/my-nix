@@ -23,6 +23,8 @@ let
       "frontend-design-anti-slop"
       "loading-skeleton"
       "mobile-mock"
+      "product-web-app"
+      "product-website"
       "responsive-layout"
       "static-website-ui"
       "surface-elevation"
