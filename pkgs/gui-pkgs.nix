@@ -14,19 +14,19 @@
 
     ownPkgs.openage = {}:
       if !pkgs.stdenv.hostPlatform.isUnix then null
-      else pkgs.callPackage ./openage/package.nix { };
+      else pkgs.callPackage ./games/openage/package.nix { };
 
     ownPkgs.openclonk = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
-      else pkgs.callPackage ./openclonk/package.nix { };
+      else pkgs.callPackage ./games/openclonk/package.nix { };
 
     ownPkgs.urbanterror = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
-      else pkgs.callPackage ./urbanterror/package.nix { };
+      else pkgs.callPackage ./games/urbanterror/package.nix { };
 
     ownPkgs.warsow = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
-      else pkgs.callPackage ./warsow/package.nix { };
+      else pkgs.callPackage ./games/warsow/package.nix { };
 
     ownPkgs.zed-delta = {}:
       if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
@@ -34,7 +34,7 @@
 
     ownPkgs.openspades = {}:
       if !pkgs.stdenv.hostPlatform.isDarwin then null
-      else pkgs.callPackage ./openspades/package.nix { };
+      else pkgs.callPackage ./games/openspades/package.nix { };
 
     ownPkgs.antigravity = {}:
       let
