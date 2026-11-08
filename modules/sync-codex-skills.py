@@ -1,6 +1,7 @@
 """Compare installed skills and hide global Codex skills shadowed by a checkout."""
 
 import fcntl
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -63,17 +64,39 @@ def global_skills():
     yield from skills(Path("/etc/codex/skills"))
 
 
+def directory_fingerprint(directory):
+    """Fingerprint every file in a skill directory, or None when unreadable."""
+    directory = Path(directory)
+    entries = []
+    visited = set()
+    for base, dirs, files in os.walk(directory, followlinks=True):
+        real_dir = Path(base).resolve()
+        if real_dir in visited:
+            dirs.clear()
+            continue
+        visited.add(real_dir)
+        dirs.sort()
+        for name in sorted(files):
+            path = Path(base) / name
+            try:
+                entries.append((path.relative_to(directory).as_posix(),
+                                hashlib.sha256(path.read_bytes()).hexdigest()))
+            except OSError:
+                return None
+    return tuple(entries)
+
+
 def print_identical_sources(sources):
     if not sources:
         return
-    global_contents = set()
+    global_fingerprints = set()
     for _, path in global_skills():
-        try:
-            global_contents.add(path.read_bytes())
-        except OSError:
-            continue
+        fingerprint = directory_fingerprint(path.parent)
+        if fingerprint is not None:
+            global_fingerprints.add(fingerprint)
     for source in sources:
-        if (Path(source) / "SKILL.md").read_bytes() in global_contents:
+        fingerprint = directory_fingerprint(source)
+        if fingerprint is not None and fingerprint in global_fingerprints:
             print(source)
 
 

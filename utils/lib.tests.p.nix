@@ -31,6 +31,10 @@ in
       ${pkgs.bash}/bin/bash ${../tests/bash-debug.sh} ${pkgs.writeText "bash-debug-fragment" l.sh_use_dbg}
       touch "$out"
     '';
+    checks.agents-md-sync = pkgs.runCommand "agents-md-sync-tests" { } ''
+      ${pkgs.python3}/bin/python3 ${../tests/sync-agents-md.py}
+      touch "$out"
+    '';
     checks.bash-fragments =
       let
         results = import ../tests/bash-fragments.nix {

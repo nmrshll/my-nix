@@ -1,11 +1,17 @@
 # thisFlake:
 with builtins; let
-  flakeModules.git = { ... }: {
+  flakeModules.git = { lib, ... }: {
     imports = [ (import ./ai-skills.nix).flake.flakeModules.ai-skills ];
     aiSkills.skills = {
       changelog = ../skills/changelog;
       commit-messages = ../skills/commit-messages;
     };
+    # Nudge agents towards the skill in the project's agents file by default.
+    aiSkills.agentsMd.fragments.commit-messages = lib.mkDefault ''
+      ## Commit messages
+
+      Use the `commit-messages` skill to write commit messages: a `<short affected area>: <extremely terse description>` subject, with any needed rationale in the body.
+    '';
 
     perSystem = { pkgs, bash, ... }:
       with builtins; let
