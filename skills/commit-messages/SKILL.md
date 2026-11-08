@@ -14,3 +14,7 @@ Follow the recent repository history: `<short affected area>: <extremely terse d
 - Prefer the affected area over generic prefixes like `feat` or `fix`. Put essential rationale in the body when needed, rather than lengthening the subject.
 
 Examples from the history: `docs: implementation plan`, `kraken: balance reconciliation`, `migrations: run at start + idempotent`, and `evm-chains: exclude spam tokens`.
+
+## Commit state
+
+Use git mv (or git add -A) so moves register as renames, and always check git status before committing.
