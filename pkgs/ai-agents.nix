@@ -424,27 +424,13 @@ with builtins; {
     #   in
     #   mkPkg { };
 
-    ownPkgs.hermes-agent = {}:
-      let
-        versions."v2026.5.16" = { sha256 = "sha256-d9qhrTy45Q5UsmjapqMHOVi9e+gR9zE8Nq9Z0wObLmc="; };
-        mkPkg = { version ? (l.latest versions), ... }:
-          if pkgs.stdenv.hostPlatform.system != "aarch64-darwin" then null
-          else
-            let
-              vData = versions.${version};
-              hermes-src = pkgs.fetchFromGitHub {
-                owner = "NousResearch";
-                repo = "hermes-agent";
-                rev = version;
-                sha256 = vData.sha256;
-              };
-              hermes-flake = (builtins.getFlake "${unsafeDiscardStringContext hermes-src.outPath}");
-              hermes-pkgs = hermes-flake.packages.${system}; # available: default, configKeys, fix-lockfiles, tui, web
-              hermes-agent = hermes-pkgs.default or (throw "Package not found for ${system}");
-            in
-            hermes-agent // { passthru = (hermes-agent.passthru or { }) // { inherit versions mkPkg; src = hermes-src; }; };
-      in
-      mkPkg { };
+    # DISABLED: hermes-agent repo has no flake.nix at this rev
+    # ownPkgs.hermes-agent = {}:
+    #   let
+    #     ...
+    #   in
+    #   mkPkg { };
+
 
     ownPkgs.oh-my-pi = {}:
       let
