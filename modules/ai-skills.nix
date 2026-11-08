@@ -121,7 +121,38 @@ let
                 mv -T --no-clobber -- "$staging" "$dest"
               )
 
-              ${lib.concatStringsSep "\n" copyCommands}
+              # Manage a single gitignored section in .git/info/exclude for generated files.
+              exclude_file="$repo/.git/info/exclude"
+              mkdir -p -- "$(dirname "$exclude_file")"
+              touch -- "$exclude_file"
+              # Remove any previously managed section.
+              ${python}/bin/python3 - "$exclude_file" <<'PY'
+import sys
+p = sys.argv[1]
+start = "# my-nix:managed-start"
+end = "# my-nix:managed-end"
+lines = open(p).read().splitlines()
+out = []
+in_sec = False
+for line in lines:
+    if line.strip() == start:
+        in_sec = True
+        continue
+    if line.strip() == end:
+        in_sec = False
+        continue
+    if not in_sec:
+        out.append(line)
+open(p, "w").write("\n".join(out).rstrip("\n") + ("\n" if out else ""))
+PY
+              {
+                echo "# my-nix:managed-start"
+                echo ".agents/"
+                echo ".codex/"
+                echo "AGENTS.md"
+                echo "# my-nix:managed-end"
+              } >> "$exclude_file"
+
               exec ${python}/bin/python3 ${./sync-codex-skills.py} "$repo" "$@"
             '';
           in
