@@ -1,10 +1,10 @@
 # thisFlake:
 with builtins; let
   flakeModules.git = { lib, ... }: {
-    imports = [ (import ./ai-skills.nix).flake.flakeModules.ai-skills ];
+    imports = [ (import ./skills/default.nix).flake.flakeModules.ai-skills ];
     aiSkills.skills = {
-      changelog = ../skills/changelog;
-      commit-messages = ../skills/commit-messages;
+      changelog = ./skills/changelog;
+      commit-messages = ./skills/commit-messages;
     };
     # Nudge agents towards the skill in the project's agents file by default.
     aiSkills.agentsMd.fragments.commit-messages = lib.mkDefault ''

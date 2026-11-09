@@ -1,5 +1,15 @@
+# thisFlake:
+# AI skill sources, the module that installs them, and the bundles that name
+# groups of them.
+#
+# The skill directories sit next to this file, so adding one is a directory
+# plus a line in a bundle below; nothing outside this file needs to know where
+# they live. `git`, `solana` and the web/frontend modules register their own
+# skills through `aiSkills.skills` the same way.
 let
-  flakeModules.ai-skills = { config, lib, self, ... }:
+  skillsDir = ./.;
+
+  aiSkills = { config, lib, self, ... }:
     let
       cfg = config.aiSkills;
       skillDirectory = lib.types.addCheck lib.types.path
@@ -23,8 +33,8 @@ let
           content;
     in
     {
-      key = builtins.unsafeDiscardStringContext "${toString ./ai-skills.nix}#ai-skills";
-      imports = [ (import ./devshell.nix).flake.flakeModules.devShell ];
+      key = builtins.unsafeDiscardStringContext "${toString ./default.nix}#ai-skills";
+      imports = [ (import ../devshell.nix).flake.flakeModules.devShell ];
 
       options.aiSkills = {
         enable = lib.mkEnableOption "copying declared AI skills into the consumer checkout" // {
@@ -77,7 +87,7 @@ let
       };
 
       config = {
-        aiSkills.skills.feature-spec = ../skills/feature-spec;
+        aiSkills.skills.feature-spec = ./feature-spec;
         perSystem = { pkgs, ... }:
           let
             flakeHash = builtins.hashFile "sha256" (self.outPath + "/flake.nix");
@@ -86,7 +96,7 @@ let
             fragmentsFile = pkgs.writeText "agents-md-fragments.json"
               (builtins.toJSON (builtins.mapAttrs normalizeFragment cfg.agentsMd.fragments));
             agentsSync = if cfg.agentsMd.enable && cfg.agentsMd.fragments != { } then ''
-              ${python}/bin/python3 ${./sync-agents-md.py} "$repo" ${fragmentsFile} ${lib.escapeShellArg cfg.agentsMd.file}
+              ${python}/bin/python3 ${../sync-agents-md.py} "$repo" ${fragmentsFile} ${lib.escapeShellArg cfg.agentsMd.file}
             '' else "";
             installer = pkgs.writeShellScript "install-ai-skills" ''
               set -euo pipefail
@@ -104,7 +114,7 @@ let
                 exit 0
               fi
               mkdir -p -- "$skills_dir"
-              duplicates=$(${python}/bin/python3 ${./sync-codex-skills.py} --identical-sources ${skillSources})
+              duplicates=$(${python}/bin/python3 ${../sync-codex-skills.py} --identical-sources ${skillSources})
 
               install_skill() (
                 dest="$skills_dir/$1"
@@ -153,7 +163,7 @@ PY
                 echo "# my-nix:managed-end"
               } >> "$exclude_file"
 
-              exec ${python}/bin/python3 ${./sync-codex-skills.py} "$repo" "$@"
+              exec ${python}/bin/python3 ${../sync-codex-skills.py} "$repo" "$@"
             '';
           in
           lib.mkIf cfg.enable {
@@ -167,6 +177,44 @@ PY
           };
       };
     };
+
+  bundle = skills: {
+    imports = [ aiSkills ];
+    aiSkills.skills = builtins.listToAttrs (map (name: {
+      inherit name;
+      value = skillsDir + "/${name}";
+    }) skills);
+  };
+
+  flakeModules = {
+    ai-skills = aiSkills;
+
+    frontend = bundle [
+      "accessibility-states"
+      "app-shell-navigation"
+      "artifact-composition" # Required by navigation and chart rendering.
+      "chart-rendering"
+      "cjk-typography"
+      "craft-polish"
+      "data-viz-recharts"
+      "design-reference-to-html"
+      "design-system-baton"
+      "empty-states"
+      "form-layout"
+      "frontend-design-anti-slop"
+      "loading-skeleton"
+      "mobile-mock"
+      "product-web-app"
+      "product-website"
+      "responsive-layout"
+      "static-website-ui"
+      "surface-elevation"
+      "ui-design-system"
+    ];
+    artifact-design = bundle [ "artifact-composition" "pitch-deck" ];
+    git-xet = bundle [ "huggingface-git-xet" ];
+    gpui = bundle [ "gpui-async" ];
+  };
 in
 {
   flake.flakeModules = flakeModules;

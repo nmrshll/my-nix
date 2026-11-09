@@ -13,6 +13,11 @@ A skill source is a directory containing `SKILL.md` and any supporting files.
 Track those files in Git so Nix includes them in the flake source. Use a
 distinct name for each skill contributed by a module.
 
+In my-nix the sources and the module live together in `modules/skills/`: one
+`default.nix` declares `ai-skills` and the bundles (`frontend`,
+`artifact-design`, `git-xet`, `gpui`), and each skill is a directory beside
+it.
+
 Enter the default dev shell from the consumer's Git worktree, with the
 consumer's `flake.nix` at the worktree root. The hook copies missing
 directories into `.agents/skills/` in that worktree. If a global skill
