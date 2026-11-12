@@ -1,7 +1,11 @@
 # thisFlake:
 with builtins; let
   flakeModules.rust = part@{ self, ... }: {
-    imports = [ ../pkgs/rust-dev-tools.nix ];
+    imports = [ ../pkgs/rust-dev-tools.nix (import ./skills/default.nix).flake.flakeModules.ai-skills ];
+    aiSkills.skills = {
+      gpui = ./skills/gpui;
+      gpui-async = ./skills/gpui-async;
+    };
     perSystem = { pkgs, config, l, lib, bash, ... }:
       with builtins; let
         bin = mapAttrs (n: pkg: "${pkg}/bin/${n}") (scripts // { /* inherit (pkgs); */ });

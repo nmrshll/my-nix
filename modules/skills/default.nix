@@ -131,6 +131,8 @@ let
                 mv -T --no-clobber -- "$staging" "$dest"
               )
 
+              ${lib.concatStringsSep "\n" copyCommands}
+
               # Manage a single gitignored section in .git/info/exclude for generated files.
               exclude_file="$repo/.git/info/exclude"
               mkdir -p -- "$(dirname "$exclude_file")"
