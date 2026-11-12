@@ -3,63 +3,139 @@
 with builtins; {
   config.perSystem = { pkgs, l, lib, system, ... }: {
 
+    # Cactus engine: on-device inference (LLM/VLM/ASR), CQ quantization and the
+    # OpenAI-compatible `cactus serve`. Upstream split the product in 3.x:
+    # `cactus-compute` 3+ is the Needle/Whistle/Mirage package (see
+    # ownPkgs.cactus-compute), and the general engine moved to `cactus-engine`
+    # under the same `cactus` CLI. The old `python/` source tree this package
+    # used to build from no longer exists, and the published wheels bundle
+    # libcactus_engine plus SDL2/3 and the bundled `cactus code` node agent, so
+    # install the wheel instead of compiling the C++ engine.
+    # torch/transformers/scipy are the `convert` extra: without them
+    # `cactus download <hf-id>` can only fetch Cactus-Compute's pre-quantized
+    # bundles, and models such as LiquidAI/LFM3-1.7B need local conversion.
+    # transformers must stay at 5.5.4 (upstream pins it for the converter).
     ownPkgs.cactus = {}:
       let
-        versions."2.0.1".sha256 = "sha256-rZvgjWa5Qqss9qxVi3LR8pQykPxh9MylllFFiYpSd5o=";
+        versions."2.2.2" = {
+          aarch64-darwin = {
+            url = "https://files.pythonhosted.org/packages/d8/d7/87ece1010406a9381d8a441d9f0a796665867c67953a1c0b52b116c7639a/cactus_engine-2.2.2-py3-none-macosx_14_0_arm64.whl";
+            sha256 = "sha256-SoVv6SUGTWCavDIR1SekaC89UTLsQz26XG5MH9J+e7s=";
+          };
+          aarch64-linux = {
+            url = "https://files.pythonhosted.org/packages/7a/e2/e5cdf19b9ca11d9d2edf567318adf4448a9faf6c82a2998b304534d821f7/cactus_engine-2.2.2-py3-none-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl";
+            sha256 = "sha256-VDV7DumyJDmel2AJpJywaYyYjsYQmZHeq8C5mX8LdOQ=";
+          };
+        };
+        # Upstream publishes only Apple-silicon and aarch64-linux wheels.
         mkPkg = { version ? (l.latest versions), ... }:
-          let
-            pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-              numpy
-              torch
-              transformers
-              scipy
-              pillow
-              huggingface-hub
-              fastapi
-              uvicorn
-              python-multipart
-              httpx
-              setuptools
-              wheel
-            ]);
-            src = pkgs.fetchFromGitHub {
-              owner = "cactus-compute";
-              repo = "cactus";
-              rev = "v${version}";
-              sha256 = versions.${version}.sha256;
+          if !(elem system (attrNames versions.${version})) then null
+          else
+            let
+              # nixpkgs' tokenizers drags the `datasets` test fixture into its
+              # check deps, and that pulls pyarrow -> arrow-cpp -> thrift, which
+              # does not build on aarch64-darwin. The converter needs tokenizers
+              # only at runtime. Overriding transformers' inputs directly has no
+              # effect (nixpkgs recomputes them), so patch the package set.
+              python = pkgs.python3.override {
+                packageOverrides = _final: prev: {
+                  tokenizers = prev.tokenizers.overridePythonAttrs (_: { doCheck = false; });
+                };
+              };
+              pyPkgs = python.pkgs;
+            in
+            pyPkgs.buildPythonPackage {
+              pname = "cactus-engine";
+              inherit version;
+              format = "wheel";
+              src = pkgs.fetchurl { inherit (versions.${version}.${system}) url sha256; };
+
+              propagatedBuildInputs = [
+                pyPkgs.huggingface-hub
+                pyPkgs.numpy
+                pyPkgs.fastapi
+                pyPkgs.uvicorn
+                pyPkgs.python-multipart
+                pyPkgs.pillow
+                pyPkgs.torchvision
+                pyPkgs.sentencepiece
+                pyPkgs.protobuf
+                # `convert` extra, for bundles Cactus-Compute does not publish.
+                pyPkgs.torch
+                pyPkgs.transformers
+                pyPkgs.scipy
+              ];
+
+              # The wheel ships prebuilt dylibs and a bundled node agent; its
+              # metadata pin on torchvision/transformers is not a nixpkgs
+              # dependency contract we can satisfy exactly.
+              # A wheel has nothing to build; several propagated deps pull in
+              # setup hooks (ninja) that would otherwise run a buildPhase.
+              dontBuild = true;
+              dontCheckRuntimeDeps = true;
+              dontWrapPythonPrograms = false;
+              doCheck = false;
+
+              # The converter caches downloaded configs and intermediate IR under
+              # its own package directory, which is read-only in the Nix store;
+              # upstream assumes a writable pip site-packages. Redirect that cache
+              # to ~/.cache/cactus/converter so `cactus download` can transpile.
+              postInstall = ''
+                substituteInPlace $out/lib/python${python.pythonVersion}/site-packages/cactus/transpiler/Converter/constants.py \
+                  --replace-fail 'CONVERTER_JSON_DIR = Path(__file__).resolve().parent / "jsons"' \
+                  'CONVERTER_JSON_DIR = Path(os.environ.get("CACTUS_CONVERTER_JSON_DIR") or Path.home() / ".cache" / "cactus" / "converter")'
+              '';
+
+              meta = {
+                description = "On-device AI inference engine (LLM, vision, speech, embeddings, RAG)";
+                homepage = "https://github.com/cactus-compute/engine";
+                platforms = attrNames versions.${version};
+                mainProgram = "cactus";
+              };
+              passthru = { inherit versions mkPkg; };
             };
+      in
+      mkPkg { };
+
+    # cactus-compute 4.x: Needle (tool calling/structured extraction), Whistle
+    # (speech) and Mirage (vision). Pure Python; the engine binaries and the
+    # model weights it needs are downloaded and cached on first use. It ships
+    # its own `cactus` entry point, which would collide with the engine's in a
+    # profile, so it is exposed as `cactus-compute`.
+    ownPkgs.cactus-compute = {}:
+      let
+        versions."4.2.0" = {
+          url = "https://files.pythonhosted.org/packages/05/19/7be39cf5382b62b4d92253752f7ed2531dec760e3aef1b3c586d3627ee10/cactus_compute-4.2.0-py3-none-any.whl";
+          sha256 = "sha256-d4fuI3Se1/uAubZXR2ldhEEiLTkigv3WEymBt0dG2zU=";
+        };
+        mkPkg = { version ? (l.latest versions), ... }:
+          let vInfo = versions.${version};
           in
-          pkgs.stdenv.mkDerivation {
-            pname = "cactus";
-            inherit version src;
+          pkgs.python3Packages.buildPythonPackage {
+            pname = "cactus-compute";
+            inherit version;
+            format = "wheel";
+            src = pkgs.fetchurl { inherit (vInfo) url sha256; };
 
-            nativeBuildInputs = [ pythonEnv pkgs.python3.pkgs.pip ];
+            propagatedBuildInputs = with pkgs.python3Packages; [
+              huggingface-hub
+              pillow
+            ];
 
-            buildPhase = ''
-              runHook preBuild
-              cd python
-              pip install . --no-deps --no-build-isolation --prefix=$out
-              runHook postBuild
-            '';
+            dontCheckRuntimeDeps = true;
+            doCheck = false;
 
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/bin
-              cat > $out/bin/cactus <<WRAPPER
-              #!${pkgs.stdenv.shell}
-              export PYTHONPATH="$out/lib/python${pkgs.python3.pythonVersion}/site-packages:${pythonEnv}/${pkgs.python3.sitePackages}:\$PYTHONPATH"
-              exec ${pythonEnv}/bin/python3 -c "from cactus.cli import main; main()" "\$@"
-              WRAPPER
-              chmod +x $out/bin/cactus
-              runHook postInstall
+            postInstall = ''
+              mv $out/bin/cactus $out/bin/cactus-compute
             '';
 
             meta = {
-              description = "Tiny AI for tiny devices - A hybrid edge-cloud AI engine";
+              description = "Local voice, vision, agents and quantized language-model inference (Needle/Whistle/Mirage)";
               homepage = "https://github.com/cactus-compute/cactus";
               platforms = l.platforms.unix;
+              mainProgram = "cactus-compute";
             };
-            passthru = { inherit versions mkPkg src; };
+            passthru = { inherit versions mkPkg; };
           };
       in
       mkPkg { };
