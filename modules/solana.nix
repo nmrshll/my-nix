@@ -12,6 +12,14 @@ with builtins; let
         craneLib = crane.mkLib pkgs;
         inherit (pkgs) stdenv;
 
+        # Compiled solana tools are for the projects that import this module,
+        # not for my-nix's own shell, which imports every module only to
+        # publish it. The module files live in my-nix's source tree, so the
+        # evaluating flake is my-nix itself exactly when its root is the
+        # directory holding ./modules. Any other flake is an importer and gets
+        # the tools; nothing to configure on either side.
+        importedByProject = toString part.self.outPath != toString ../.;
+
         ownPkgs = {
           agave-src =
             let
@@ -525,14 +533,16 @@ with builtins; let
 
         myDevShell.env = lib.mapAttrs (_: lib.mkDefault) env;
         myDevShell.buildInputs = buildInputs ++ [
+          pkgs.surfpool
+        ]
+        ++ lib.optionals importedByProject [
           ownPkgs.spl-token
           ownPkgs.solana-cli
           ownPkgs.anchor-cli-binary
           ownPkgs.cargo-build-sbf-wrapper
-          # ownPkgs.anchor-cli-binary
           # ownPkgs.avm
-          pkgs.surfpool
-        ] ++ (attrValues scripts);
+        ]
+        ++ (attrValues scripts);
       };
   };
 
