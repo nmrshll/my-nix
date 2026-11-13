@@ -133,7 +133,7 @@ with builtins; let
           '';
           gstrip = ''
             n="''${1:-10}"
-            git rebase --exec 'if git log -1 --format=%B | grep -qE "^(🤖 Generated with|Co-Authored-By:)"; then git log -1 --format=%B | sed -e "/^🤖 Generated with Codebuff$/d" -e "/^Co-Authored-By:/d" | python3 -c "import sys; sys.stdout.write(sys.stdin.read().rstrip()+\"\n\")" > /tmp/strip-msg.txt && git commit --amend -F /tmp/strip-msg.txt; fi' "HEAD~$n"
+            git rebase --exec 'if git log -1 --format=%B | grep -qE "^(🤖 Generated with|Co-Authored-By:)"; then git log -1 --format=%B | sed -e "/^🤖 Generated with Codebuff$/d" -e "/^Co-Authored-By:/d" | ${pkgs.python3}/bin/python3 -c "import sys; sys.stdout.write(sys.stdin.read().rstrip()+\"\n\")" > /tmp/strip-msg.txt && git commit --amend -F /tmp/strip-msg.txt; fi' "HEAD~$n"
           '';
         };
 
