@@ -121,11 +121,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786972509,
-        "narHash": "sha256-wiuwPyBpDOGJSfyUgUU7UiqM+Kj10Uib0mfQYqgnJlo=",
+        "lastModified": 1794502958,
+        "narHash": "sha256-Lo+GSVUuPqq/U6Kxh5HUSsCXGrDdMDiLB0WR1jWzE9g=",
         "ref": "refs/heads/main",
-        "rev": "bc91e5a4fd2850911f344fcdb227ea0543290c38",
-        "revCount": 181,
+        "rev": "486fb98d9e0daf131e3c23c3c21875ab27e440b0",
+        "revCount": 359,
         "type": "git",
         "url": "ssh://git@gitlab.com/nmrshll/tools.git"
       },
